@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id = "@+id/searchBar"
+        android:icon="@drawable/ic_search_bar"
+        android:title="Search"
+        android:visibility="visible"
+        app:actionViewClass="androidx.appcompat.widget.SearchView$SearchAutoComplete"
+        app:showAsAction="ifRoom|withText|collapseActionView" />
+
+</menu>
