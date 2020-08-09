@@ -41,11 +41,14 @@ class SearchActivity : AppCompatActivity() {
                     Response.Listener { response->
                         textView.text = "Response: %s".format(response.toString())
                         Toast.makeText(applicationContext, "success", Toast.LENGTH_SHORT).show()
+                        startActivity(Intent(this@SearchActivity, TickerExploreActivity::class.java))
+
                     },
                     Response.ErrorListener { error ->
                         // TODO: Handle error
                         textView.text = "Response: %s".format(error.toString())
                         Toast.makeText(applicationContext, error.toString(), Toast.LENGTH_SHORT).show()
+
                     }
                 )
 

@@ -28,6 +28,9 @@
                 android:resource="@xml/searchable"/>
         </activity>
 
+
+        <activity android:name=".TickerExploreActivity" />
+
     </application>
 
 </manifest>
