@@ -11,6 +11,7 @@ import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
+import org.json.JSONObject
 
 
 class SearchActivity : AppCompatActivity() {
@@ -31,17 +32,22 @@ class SearchActivity : AppCompatActivity() {
         searchBar.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
 
-
+                val queryAPI = QueryAPI()
                 val url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=ko&interval=1min&apikey=5B4ZQG1WXCAB5L1N"
                 val url2 = "https://www.google.com"
+
                 val textView: TextView = findViewById(R.id.textView)
                 val requestQueue = Volley.newRequestQueue(this@SearchActivity)
                 val jsonObjectRequest = JsonObjectRequest(
-                    Request.Method.GET, url, null,
+                    Request.Method.GET, queryAPI.GenQueryStr("day", "KO"), null,
                     Response.Listener { response->
                         textView.text = "Response: %s".format(response.toString())
                         Toast.makeText(applicationContext, "success", Toast.LENGTH_SHORT).show()
-                        startActivity(Intent(this@SearchActivity, TickerExploreActivity::class.java))
+                        val queryMap : HashMap<String, String> =
+                            hashMapOf("day" to response.toString())
+                        val intent = Intent(Intent(this@SearchActivity, TickerExploreActivity::class.java))
+                        intent.putExtra("queryMap", queryMap)
+                        startActivity(intent)
 
                     },
                     Response.ErrorListener { error ->
