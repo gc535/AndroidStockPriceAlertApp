@@ -1,8 +1,10 @@
 package stock.price.alert.application
 
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.anychart.AnyChart
 import com.anychart.AnyChartView
@@ -19,6 +21,7 @@ import org.json.JSONObject
 
 class TickerExploreActivity : AppCompatActivity() {
     private var dataHandler : StockDataHandler? = null
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.fragment_ticker_explore)
@@ -36,6 +39,8 @@ class TickerExploreActivity : AppCompatActivity() {
         dataHandler = StockDataHandler(queryMap)
         val textView: TextView = findViewById(R.id.textView2)
         textView.text = "Response: %s".format(dataHandler?.GetResponse("day"))
+        val data = dataHandler!!.GetData("day")
+        Log.d("READBACK", data.toString())
     }
 
     private fun initCanvas() : Cartesian {
