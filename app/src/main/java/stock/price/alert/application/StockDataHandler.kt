@@ -66,8 +66,8 @@ class StockDataHandler(queries : HashMap<String, String>) {
         var dataKey : String  // data field tag
         var valueKey : String // data point tag
         when(type) {
-            "day" -> { dataKey = "Time Series (1min)"; valueKey = "4. close" }
-            "week" -> { dataKey = "Time Series (1min)"; valueKey = "4. close" }
+            "day" -> { dataKey = "Time Series (5min)"; valueKey = "4. close" }
+            "week" -> { dataKey = "Time Series (15min)"; valueKey = "4. close" }
             "month" -> { dataKey = "Time Series (Daily)"; valueKey = "5. adjusted close" }
             "3month" -> { dataKey = "Time Series (Daily)"; valueKey = "5. adjusted close" }
             "year" -> { dataKey = "Time Series (Daily)"; valueKey = "5. adjusted close" }
@@ -86,7 +86,7 @@ class StockDataHandler(queries : HashMap<String, String>) {
         parsedResponse[type] = Vector()
         var pickCnt = 0  // only sample at desired frequency
         val data = queryMap.get(type)!!.getJSONObject(dataKey)
-        val timePoint = data.keys()
+        val timePoint = data.keys() // keys should be an ordered list of time string
         while(timePoint.hasNext()) {
             // extract sample's date info
             val timeStr : String = timePoint.next()

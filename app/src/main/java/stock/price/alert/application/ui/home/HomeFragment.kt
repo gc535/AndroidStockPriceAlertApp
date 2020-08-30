@@ -32,7 +32,6 @@ class HomeFragment : Fragment() {
         val searchButton: Button = root.findViewById(R.id.goToSearchActivity)
         searchButton.setOnClickListener {
             val intent = Intent(this@HomeFragment.context, SearchActivity::class.java)
-            //val intent = Intent(activity, SearchActivity::class.java)
             startActivity(intent)
         }
         

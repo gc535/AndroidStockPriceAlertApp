@@ -6,7 +6,7 @@
     android:layout_height="match_parent">
 
     <TextView
-        android:id="@+id/textView2"
+        android:id="@+id/responseTextView"
         android:layout_width="270dp"
         android:layout_height="247dp"
         android:text="TextView"
@@ -17,7 +17,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.882" />
 
-    <com.anychart.AnyChartView
+    <!--<com.anychart.AnyChartView
         android:id="@+id/pricePlot"
         android:layout_width="fill_parent"
         android:layout_height="280dp"
@@ -27,6 +27,16 @@
         android:duplicateParentState="false"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" /> -->
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/pricePlot"
+        android:layout_width="fill_parent"
+        android:layout_height="280dp"
+        android:layout_marginTop="100dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

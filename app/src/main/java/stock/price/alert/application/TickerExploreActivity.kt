@@ -1,11 +1,18 @@
 package stock.price.alert.application
 
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.ArrayAdapter
 import android.widget.TextView
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import com.android.volley.Request
+import com.android.volley.Response
+import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.Volley
 import com.anychart.AnyChart
 import com.anychart.AnyChartView
 import com.anychart.chart.common.dataentry.DataEntry
@@ -16,7 +23,12 @@ import com.anychart.data.Mapping
 import com.anychart.data.Set
 import com.anychart.enums.Anchor
 import com.anychart.graphics.vector.Stroke
-import org.json.JSONObject
+import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
+import kotlinx.android.synthetic.main.fragment_search.*
 
 
 class TickerExploreActivity : AppCompatActivity() {
@@ -26,21 +38,57 @@ class TickerExploreActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.fragment_ticker_explore)
 
-        var canvas : Cartesian = initCanvas()
-        val seriesMapping : Mapping = getStockDataMapping()
-        generatePlot(seriesMapping, canvas)
+        //var canvas : Cartesian = initCanvas()
+        //val seriesMapping : Mapping = getStockDataMapping()
+        //generatePlot(seriesMapping, canvas)
 
-        val queryMap : HashMap<String, String>? =
-            intent.getSerializableExtra("queryMap") as HashMap<String, String>
-        if (queryMap == null) {
-            throw Exception("Error: Invalid Query Map")
-        }
+        //testMPChart()
 
-        dataHandler = StockDataHandler(queryMap)
-        val textView: TextView = findViewById(R.id.textView2)
-        textView.text = "Response: %s".format(dataHandler?.GetResponse("day"))
-        val data = dataHandler!!.GetData("day")
-        Log.d("READBACK", data.toString())
+        // obtain the query respond from the search activity
+        val textView: TextView = findViewById(R.id.responseTextView)
+        val symbol = intent.getSerializableExtra("symbol") as String
+
+        val queryMap = HashMap<String, String>()
+
+        val requestQueue = Volley.newRequestQueue(this)
+        val jsonObjectRequest = JsonObjectRequest(
+            Request.Method.GET, QueryAPI().GenQueryStr("day", symbol), null,
+            Response.Listener { response->
+                textView.text = "Response: %s".format(response.toString())
+                Toast.makeText(applicationContext, "success", Toast.LENGTH_SHORT).show()
+                queryMap.put("day", response.toString())
+
+                // process response
+                dataHandler = StockDataHandler(queryMap)
+
+                textView.text = "Response: %s".format(dataHandler?.GetResponse("day"))
+                val data = dataHandler!!.GetData("day")
+                Log.d("READBACK", data.toString())
+
+                val priceChart : LineChart = findViewById(R.id.pricePlot)
+                var pricePloter = PricePloter(priceChart)
+                pricePloter.PlotData(data)
+                //textView.text = "Response: %s".format(queryMap["day"])
+            },
+            Response.ErrorListener { error ->
+                // TODO: Handle error
+                textView.text = "Response: %s".format(error.toString())
+                Toast.makeText(applicationContext, error.toString(), Toast.LENGTH_SHORT).show()
+
+            }
+        )
+        // Access the RequestQueue through your singleton class.
+        requestQueue.add(jsonObjectRequest)
+
+        //dataHandler = StockDataHandler(queryMap)
+
+        //textView.text = "Response: %s".format(dataHandler?.GetResponse("day"))
+        //val data = dataHandler!!.GetData("day")
+        //Log.d("READBACK", data.toString())
+
+        //val priceChart : LineChart = findViewById(R.id.pricePlot)
+        //var pricePloter = PricePloter(priceChart)
+        //pricePloter.PlotData(data)
     }
 
     private fun initCanvas() : Cartesian {
@@ -106,6 +154,58 @@ class TickerExploreActivity : AppCompatActivity() {
             .offsetY(5.0)
 
         priceView.setChart(canvas)
+    }
+
+    private fun testMPChart() {
+        val priceChart : LineChart = findViewById(R.id.pricePlot)
+        //priceChart.setBackgroundColor(Color.WHITE)
+        priceChart.setDrawBorders(false)
+        priceChart.description.isEnabled = false
+        priceChart.isDragEnabled = false
+        priceChart.isScaleXEnabled = false
+        priceChart.isScaleYEnabled = false
+        priceChart.setTouchEnabled(true)
+        priceChart.setDrawGridBackground(false)
+
+        priceChart.axisRight.setDrawGridLines(false)
+        priceChart.axisRight.setDrawAxisLine(false)
+        priceChart.axisRight.setDrawLabels(false)
+
+        priceChart.axisLeft.setDrawGridLines(false)
+        priceChart.axisLeft.setDrawAxisLine(false)
+        priceChart.axisLeft.setDrawLabels(false)
+
+        priceChart.xAxis.setDrawGridLines(false)
+        priceChart.xAxis.setDrawLabels(false)
+        priceChart.xAxis.setDrawAxisLine(false)
+        priceChart.legend.isEnabled = false
+
+
+
+        var yValue : ArrayList<Entry> = ArrayList()
+        yValue.add(Entry(1f, 10f))
+        yValue.add(Entry(2f, 20f))
+        yValue.add(Entry(3f, 30f))
+        yValue.add(Entry(4f, 40f))
+        yValue.add(Entry(5f, 50f))
+        yValue.add(Entry(6f, 60f))
+        yValue.add(Entry(7f, 70f))
+
+        val set1 : LineDataSet = LineDataSet(yValue, "set1")
+        set1.setDrawCircles(false)
+        set1.setDrawValues(false)
+        set1.setColor(Color.GREEN)
+        set1.setDrawVerticalHighlightIndicator(true)
+        set1.highLightColor = Color.GRAY
+        set1.highlightLineWidth = 1f
+        set1.setDrawHorizontalHighlightIndicator(false)
+        set1.lineWidth = 2f
+        val dataSet = ArrayList<ILineDataSet>()
+        dataSet.add(set1)
+        val data = LineData(dataSet)
+        priceChart.data = data
+
+
     }
 
 }
