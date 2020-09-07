@@ -7,12 +7,12 @@ import org.json.JSONObject
 class QueryAPI {
     private var cQueryFuncs = HashMap<String, String>()
     init {
-        cQueryFuncs["day"] = "TIME_SERIES_INTRADAY" // full 1 min
-        cQueryFuncs["week"] = "TIME_SERIES_INTRADAY" // full 15 mins
-        cQueryFuncs["month"] = "TIME_SERIES_DAILY_ADJUSTED" // compact
-        cQueryFuncs["3month"] = "TIME_SERIES_DAILY_ADJUSTED" // compact
-        cQueryFuncs["year"] = "TIME_SERIES_DAILY_ADJUSTED"
-        cQueryFuncs["5year"] = "TIME_SERIES_WEEKLY_ADJUSTED" // compact
+        cQueryFuncs["day"] = "TIME_SERIES_INTRADAY" // compact 5 min
+        cQueryFuncs["week"] = "TIME_SERIES_INTRADAY" // compact 60 mins
+        cQueryFuncs["month"] = "TIME_SERIES_DAILY_ADJUSTED" // compact daily adjusted 30
+        cQueryFuncs["3month"] = "TIME_SERIES_DAILY_ADJUSTED" // compact daily adjusted 90
+        cQueryFuncs["year"] = "TIME_SERIES_WEEKLY_ADJUSTED" //
+        cQueryFuncs["5year"] = "TIME_SERIES_WEEKLY_ADJUSTED" //
     }
 
     fun ProbTicker(search : String) : String {
@@ -56,11 +56,12 @@ class QueryAPI {
         return queryStrArray
     }
 
+    // sanity check of func is done by getFuncStr(func: String)
     fun GenQueryStr(func : String, ticker : String) : String {
         val optinal_interval = when(func) {
             // TODO: 1mins for intraday only covers utill 2pm, full size is too big
             "day" -> "interval=5min"
-            "week" -> "interval=15min"
+            "week" -> "interval=60min"
             else -> "" } + delim
 
         val queryURL = priceQueryURL + getFuncStr(func) + delim +
@@ -70,6 +71,7 @@ class QueryAPI {
         return queryURL
     }
 
+    // this interface also do the sanity check on query type
     private fun getFuncStr(func: String): String {
         val prefix = "function="
         if (!cQueryFuncs.containsKey(func)) {

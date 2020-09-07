@@ -4,7 +4,9 @@ import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.widget.ArrayAdapter
+import android.view.MotionEvent
+import android.view.View
+import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -28,15 +30,21 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
-import kotlinx.android.synthetic.main.fragment_search.*
+import kotlinx.android.synthetic.main.fragment_ticker_explore.*
 
 
 class TickerExploreActivity : AppCompatActivity() {
-    private var dataHandler : StockDataHandler? = null
+    @RequiresApi(Build.VERSION_CODES.O)
+    private var dataHandler = StockDataHandler()
+
+    private lateinit var symbol : String
+    private var queryMap = HashMap<String, String>()
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.fragment_ticker_explore)
+        symbol = intent.getSerializableExtra("symbol") as String
 
         //var canvas : Cartesian = initCanvas()
         //val seriesMapping : Mapping = getStockDataMapping()
@@ -44,41 +52,10 @@ class TickerExploreActivity : AppCompatActivity() {
 
         //testMPChart()
 
-        // obtain the query respond from the search activity
-        val textView: TextView = findViewById(R.id.responseTextView)
-        val symbol = intent.getSerializableExtra("symbol") as String
-
-        val queryMap = HashMap<String, String>()
-
-        val requestQueue = Volley.newRequestQueue(this)
-        val jsonObjectRequest = JsonObjectRequest(
-            Request.Method.GET, QueryAPI().GenQueryStr("day", symbol), null,
-            Response.Listener { response->
-                textView.text = "Response: %s".format(response.toString())
-                Toast.makeText(applicationContext, "success", Toast.LENGTH_SHORT).show()
-                queryMap.put("day", response.toString())
-
-                // process response
-                dataHandler = StockDataHandler(queryMap)
-
-                textView.text = "Response: %s".format(dataHandler?.GetResponse("day"))
-                val data = dataHandler!!.GetData("day")
-                Log.d("READBACK", data.toString())
-
-                val priceChart : LineChart = findViewById(R.id.pricePlot)
-                var pricePloter = PricePloter(priceChart)
-                pricePloter.PlotData(data)
-                //textView.text = "Response: %s".format(queryMap["day"])
-            },
-            Response.ErrorListener { error ->
-                // TODO: Handle error
-                textView.text = "Response: %s".format(error.toString())
-                Toast.makeText(applicationContext, error.toString(), Toast.LENGTH_SHORT).show()
-
-            }
-        )
-        // Access the RequestQueue through your singleton class.
-        requestQueue.add(jsonObjectRequest)
+        // init bottons
+        initPriceButtons()
+        // default query on init
+        queryThenPlot("day")
 
         //dataHandler = StockDataHandler(queryMap)
 
@@ -91,8 +68,190 @@ class TickerExploreActivity : AppCompatActivity() {
         //pricePloter.PlotData(data)
     }
 
-    private fun initCanvas() : Cartesian {
-        var cartesian : Cartesian = AnyChart.line()
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun queryThenPlot(type : String) {
+        // obtain the query respond from the search activity
+        val textView: TextView = findViewById(R.id.responseTextView)
+        val requestQueue = Volley.newRequestQueue(this)
+        val jsonObjectRequest = JsonObjectRequest(
+            Request.Method.GET, QueryAPI().GenQueryStr(type, symbol), null,
+            Response.Listener { response ->
+                textView.text = "Response: %s".format(response.toString())
+                Toast.makeText(applicationContext, "success", Toast.LENGTH_SHORT).show()
+
+                // process response
+                dataHandler = StockDataHandler()
+                dataHandler.AddResponse(type, response.toString())
+                //textView.text = "Response: %s".format(dataHandler.GetResponse(type))
+                textView.text = "Response: %s".format(response.toString())
+                val data = dataHandler.GetData(type)
+                Log.d("READBACK", data.toString())
+
+                val priceChart: LineChart = findViewById(R.id.pricePlot)
+                var pricePloter = PricePloter(priceChart)
+                pricePloter.PlotData(data)
+            },
+            Response.ErrorListener { error ->
+                // TODO: Handle error
+                textView.text = "Response: %s".format(error.toString())
+                Toast.makeText(applicationContext, error.toString(), Toast.LENGTH_SHORT).show()
+
+            }
+        )
+        // Access the RequestQueue through your singleton class.
+        requestQueue.add(jsonObjectRequest)
+    }
+
+    private fun initPriceButtons() {
+        // by default, 1d button is pressed on init
+        button_1d.isPressed = true
+        button_1d.isSelected = true
+
+        // 1 day
+        button_1d.setOnTouchListener (object : View.OnTouchListener {
+            @RequiresApi(Build.VERSION_CODES.O)
+            override fun onTouch(view: View, event: MotionEvent): Boolean {
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    clearButtonState(button_1w)
+                    clearButtonState(button_1m)
+                    clearButtonState(button_3m)
+                    clearButtonState(button_1y)
+                    clearButtonState(button_5y)
+                    setButtonState(button_1d)
+                    queryThenPlot("day")
+                    return true
+                }
+
+                if (event.action != MotionEvent.ACTION_UP) {
+                    return false
+                }
+                return true
+            }
+        })
+
+        // 1 week
+        button_1w.setOnTouchListener (object : View.OnTouchListener {
+            @RequiresApi(Build.VERSION_CODES.O)
+            override fun onTouch(view: View, event: MotionEvent): Boolean {
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    clearButtonState(button_1d)
+                    clearButtonState(button_1m)
+                    clearButtonState(button_3m)
+                    clearButtonState(button_1y)
+                    clearButtonState(button_5y)
+                    setButtonState(button_1w)
+                    queryThenPlot("week")
+                    return true
+                }
+
+                if (event.action != MotionEvent.ACTION_UP) {
+                    return false
+                }
+                return true
+            }
+        })
+
+        // 1 month
+        button_1m.setOnTouchListener (object : View.OnTouchListener {
+            @RequiresApi(Build.VERSION_CODES.O)
+            override fun onTouch(view: View, event: MotionEvent): Boolean {
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    clearButtonState(button_1d)
+                    clearButtonState(button_1w)
+                    clearButtonState(button_3m)
+                    clearButtonState(button_1y)
+                    clearButtonState(button_5y)
+                    setButtonState(button_1m)
+                    queryThenPlot("month")
+                    return true
+                }
+
+                if (event.action != MotionEvent.ACTION_UP) {
+                    return false
+                }
+                return true
+            }
+        })
+
+        // 3 month
+        button_3m.setOnTouchListener (object : View.OnTouchListener {
+            @RequiresApi(Build.VERSION_CODES.O)
+            override fun onTouch(view: View, event: MotionEvent): Boolean {
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    clearButtonState(button_1d)
+                    clearButtonState(button_1w)
+                    clearButtonState(button_1m)
+                    clearButtonState(button_1y)
+                    clearButtonState(button_5y)
+                    setButtonState(button_3m)
+                    queryThenPlot("3month")
+                    return true
+                }
+
+                if (event.action != MotionEvent.ACTION_UP) {
+                    return false
+                }
+                return true
+            }
+        })
+
+        // 1 year
+        button_1y.setOnTouchListener (object : View.OnTouchListener {
+            @RequiresApi(Build.VERSION_CODES.O)
+            override fun onTouch(view: View, event: MotionEvent): Boolean {
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    clearButtonState(button_1d)
+                    clearButtonState(button_1w)
+                    clearButtonState(button_1m)
+                    clearButtonState(button_3m)
+                    clearButtonState(button_5y)
+                    setButtonState(button_1y)
+                    queryThenPlot("year")
+                    return true
+                }
+
+                if (event.action != MotionEvent.ACTION_UP) {
+                    return false
+                }
+                return true
+            }
+        })
+
+        // 5 years
+        button_5y.setOnTouchListener (object : View.OnTouchListener {
+            @RequiresApi(Build.VERSION_CODES.O)
+            override fun onTouch(view: View, event: MotionEvent): Boolean {
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    clearButtonState(button_1d)
+                    clearButtonState(button_1w)
+                    clearButtonState(button_1m)
+                    clearButtonState(button_3m)
+                    clearButtonState(button_1y)
+                    setButtonState(button_5y)
+                    queryThenPlot("5year")
+                    return true
+                }
+
+                if (event.action != MotionEvent.ACTION_UP) {
+                    return false
+                }
+                return true
+            }
+        })
+    }
+
+    private fun clearButtonState(button: Button) {
+        button.isSelected = false
+        button.isPressed = false
+    }
+
+    private fun setButtonState(button: Button) {
+        button.isSelected = true
+        button.isPressed = true
+    }
+
+    private fun initCanvas(): Cartesian {
+        var cartesian: Cartesian = AnyChart.line()
         cartesian.background().fill("rgb(300,300,300)", 1)
         cartesian.credits().text("false")
         cartesian.animation(true)
@@ -107,7 +266,7 @@ class TickerExploreActivity : AppCompatActivity() {
         return cartesian
     }
 
-    private fun getStockDataMapping() : Mapping {
+    private fun getStockDataMapping(): Mapping {
         // create dummy data
 
         var seriesData: MutableList<DataEntry> = ArrayList()
@@ -136,14 +295,14 @@ class TickerExploreActivity : AppCompatActivity() {
         seriesData.add(ValueDataEntry("2008", 15.7))
         seriesData.add(ValueDataEntry("2009", 12.0))
 
-        var data : Set = Set.instantiate()
+        var data: Set = Set.instantiate()
         data.data(seriesData)
 
         return data.mapAs("{ x: 'x', value: 'value' }")
     }
 
-    private fun generatePlot(seriesMapping : Mapping, canvas : Cartesian)  {
-        var priceView : AnyChartView = findViewById(R.id.pricePlot)
+    private fun generatePlot(seriesMapping: Mapping, canvas: Cartesian) {
+        var priceView: AnyChartView = findViewById(R.id.pricePlot)
         var series: Line = canvas.line(seriesMapping)
         series.hovered().markers().enabled(true)
 
@@ -157,7 +316,7 @@ class TickerExploreActivity : AppCompatActivity() {
     }
 
     private fun testMPChart() {
-        val priceChart : LineChart = findViewById(R.id.pricePlot)
+        val priceChart: LineChart = findViewById(R.id.pricePlot)
         //priceChart.setBackgroundColor(Color.WHITE)
         priceChart.setDrawBorders(false)
         priceChart.description.isEnabled = false
@@ -181,8 +340,7 @@ class TickerExploreActivity : AppCompatActivity() {
         priceChart.legend.isEnabled = false
 
 
-
-        var yValue : ArrayList<Entry> = ArrayList()
+        var yValue: ArrayList<Entry> = ArrayList()
         yValue.add(Entry(1f, 10f))
         yValue.add(Entry(2f, 20f))
         yValue.add(Entry(3f, 30f))
@@ -191,10 +349,10 @@ class TickerExploreActivity : AppCompatActivity() {
         yValue.add(Entry(6f, 60f))
         yValue.add(Entry(7f, 70f))
 
-        val set1 : LineDataSet = LineDataSet(yValue, "set1")
+        val set1: LineDataSet = LineDataSet(yValue, "set1")
         set1.setDrawCircles(false)
         set1.setDrawValues(false)
-        set1.setColor(Color.GREEN)
+        set1.setColor(R.color.bullGreen)
         set1.setDrawVerticalHighlightIndicator(true)
         set1.highLightColor = Color.GRAY
         set1.highlightLineWidth = 1f
@@ -207,5 +365,7 @@ class TickerExploreActivity : AppCompatActivity() {
 
 
     }
-
 }
+
+
+

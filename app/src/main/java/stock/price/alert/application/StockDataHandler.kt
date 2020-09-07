@@ -11,18 +11,17 @@ import kotlin.collections.HashMap
 
 
 @RequiresApi(Build.VERSION_CODES.O)
-class StockDataHandler(queries : HashMap<String, String>) {
-    private lateinit var queryMap : HashMap<String, JSONObject>
+class StockDataHandler(queries : HashMap<String, String>? = null) {
+    private var queryMap = HashMap<String, JSONObject>()
     private var parsedResponse = hashMapOf<String, Vector<Pair<String, Float>>>()
     init {
-        Reset(queries)
+        queries?.let{
+            //Reset(queries)
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun Reset(queries : HashMap<String, String>) {
-        // TODO:
-        //  1. reset function should call parse daily data by default
-        queryMap = hashMapOf()
         for ((key, value) in queries) {
             if (value == null) {
                 throw Exception("Error: Invalid query response")
@@ -37,13 +36,27 @@ class StockDataHandler(queries : HashMap<String, String>) {
         GetData("day")
     }
 
+    fun AddResponse(type : String, resp : String) {
+        // save type->resp pair to map
+        val metaKey = "Meta Data"
+        val respJSON = JSONObject(resp)
+        if (respJSON.opt(metaKey) == null) {
+            throw Exception("Error: Invalid query response: $type")
+        }
+        queryMap.set(type, respJSON)
+
+        // parsing response json
+        GetData(type)
+    }
+
+
     @RequiresApi(Build.VERSION_CODES.O)
     fun GetData(type : String) : Vector<Pair<String, Float>>? {
         var range : Int
         var freq : Int
         when(type) {
             "day" -> { range = 1; freq = 1 }
-            "week" -> { range = 5; freq = 15 }
+            "week" -> { range = 7; freq = 1 }
             "month" -> { range = 30; freq = 1 }
             "3month" -> { range = 90; freq = 1 }
             "year" -> { range = 365; freq = 1 }
@@ -67,14 +80,15 @@ class StockDataHandler(queries : HashMap<String, String>) {
         var valueKey : String // data point tag
         when(type) {
             "day" -> { dataKey = "Time Series (5min)"; valueKey = "4. close" }
-            "week" -> { dataKey = "Time Series (15min)"; valueKey = "4. close" }
+            "week" -> { dataKey = "Time Series (60min)"; valueKey = "4. close" }
             "month" -> { dataKey = "Time Series (Daily)"; valueKey = "5. adjusted close" }
             "3month" -> { dataKey = "Time Series (Daily)"; valueKey = "5. adjusted close" }
-            "year" -> { dataKey = "Time Series (Daily)"; valueKey = "5. adjusted close" }
+            "year" -> { dataKey = "Weekly Adjusted Time Series"; valueKey = "5. adjusted close" }
             "5year" -> { dataKey = "Weekly Adjusted Time Series"; valueKey = "5. adjusted close" }
             else -> throw Exception("Error: Try to parse invalid data type")
         }
 
+        Log.d("TOPARSE", queryMap[type].toString())
         // construct time range by computing start date of sampling
         val timeStampStr = queryMap[type]?.getJSONObject("Meta Data")
             ?.getString("3. Last Refreshed")
@@ -82,6 +96,7 @@ class StockDataHandler(queries : HashMap<String, String>) {
         val endDateStr : String = timeStampStr.split(" ")[0]
         val endDate = LocalDate.parse(endDateStr)
         val startDate = endDate.plusDays((-range).toLong())
+        Log.d("STARTDATE", startDate.toString())
 
         parsedResponse[type] = Vector()
         var pickCnt = 0  // only sample at desired frequency
