@@ -5,7 +5,7 @@ import com.android.volley.Response
 import org.json.JSONObject
 
 class QueryAPI {
-    private var cQueryFuncs = HashMap<String, String>()
+    var cQueryFuncs = HashMap<String, String>()
     init {
         cQueryFuncs["day"] = "TIME_SERIES_INTRADAY" // compact 5 min
         cQueryFuncs["week"] = "TIME_SERIES_INTRADAY" // compact 60 mins
