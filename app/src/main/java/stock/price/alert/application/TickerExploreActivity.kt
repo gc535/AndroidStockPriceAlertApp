@@ -13,6 +13,7 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Observer
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
@@ -38,53 +39,48 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.*
 
 
 class TickerExploreActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
-    private lateinit var dataHandler :StockDataHandler
-
-
+    private lateinit var queryAPIs: StockDataQueryAPIs
     private lateinit var symbol : String
-    private var queryMap = HashMap<String, String>()
+    private val viewModel : TickerViewModel by viewModels()
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.fragment_ticker_explore)
-        symbol = intent.getSerializableExtra("symbol") as String
-        dataHandler = StockDataHandler(this, symbol)
-        //var canvas : Cartesian = initCanvas()
-        //val seriesMapping : Mapping = getStockDataMapping()
-        //generatePlot(seriesMapping, canvas)
 
-        //testMPChart()
+        // init private member variables
+        symbol = intent.getSerializableExtra("symbol") as String
+        queryAPIs = StockDataQueryAPIs(this, symbol)
+
+        // setup viewModel to observe price series data
+        viewModel.MaybeRefresh(symbol)
+        viewModel.mPriceSeries.observe(
+            this, Observer{ priceSeries ->
+                // update plot
+                Log.d("OB", priceSeries.toString())
+                val priceChart: LineChart = findViewById(R.id.pricePlot)
+                var pricePloter = PricePloter(priceChart)
+                pricePloter.PlotData(priceSeries)
+            }
+        )
+
+        // update and load ticker price data in background
+        viewModel.UpdatePriceInBackGround("day", queryAPIs)
+        viewModel.LoadPriceInBackGround("week", queryAPIs)
+        viewModel.LoadPriceInBackGround("3month", queryAPIs)
+        viewModel.LoadPriceInBackGround("5year", queryAPIs)
 
         // init buttons
         initPriceButtons()
 
-        // lunch all queries in background to cache result before user making the real queries
-        GlobalScope.launch {
-            queryThenPlot("day")
-            // TODO: queryMap might not exists yet if two query occured so close. Adding query lock might solve this issue?
-            dataHandler.QueryData("week")
-            //dataHandler.QueryData("month")
-            dataHandler.QueryData("3month")
-            //dataHandler.QueryData("year")
-            dataHandler.QueryData("5year")
-        }
 
     }
 
-
-
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun queryThenPlot(type : String) {
-        val priceChart: LineChart = findViewById(R.id.pricePlot)
-        var pricePloter = PricePloter(priceChart)
-        dataHandler.QueryDataThenPlot(type, pricePloter)
-    }
 
     private fun initPriceButtons() {
         // by default, 1d button is pressed on init
@@ -102,7 +98,7 @@ class TickerExploreActivity : AppCompatActivity() {
                     clearButtonState(button_1y)
                     clearButtonState(button_5y)
                     setButtonState(button_1d)
-                    queryThenPlot("day")
+                    viewModel.UpdatePriceInBackGround("day", queryAPIs)
                     return true
                 }
 
@@ -124,7 +120,7 @@ class TickerExploreActivity : AppCompatActivity() {
                     clearButtonState(button_1y)
                     clearButtonState(button_5y)
                     setButtonState(button_1w)
-                    queryThenPlot("week")
+                    viewModel.UpdatePriceInBackGround("week", queryAPIs)
                     return true
                 }
 
@@ -146,7 +142,7 @@ class TickerExploreActivity : AppCompatActivity() {
                     clearButtonState(button_1y)
                     clearButtonState(button_5y)
                     setButtonState(button_1m)
-                    queryThenPlot("month")
+                    viewModel.UpdatePriceInBackGround("month", queryAPIs)
                     return true
                 }
 
@@ -168,7 +164,7 @@ class TickerExploreActivity : AppCompatActivity() {
                     clearButtonState(button_1y)
                     clearButtonState(button_5y)
                     setButtonState(button_3m)
-                    queryThenPlot("3month")
+                    viewModel.UpdatePriceInBackGround("3month", queryAPIs)
                     return true
                 }
 
@@ -190,7 +186,7 @@ class TickerExploreActivity : AppCompatActivity() {
                     clearButtonState(button_3m)
                     clearButtonState(button_5y)
                     setButtonState(button_1y)
-                    queryThenPlot("year")
+                    viewModel.UpdatePriceInBackGround("year", queryAPIs)
                     return true
                 }
 
@@ -212,7 +208,7 @@ class TickerExploreActivity : AppCompatActivity() {
                     clearButtonState(button_3m)
                     clearButtonState(button_1y)
                     setButtonState(button_5y)
-                    queryThenPlot("5year")
+                    viewModel.UpdatePriceInBackGround("5year", queryAPIs)
                     return true
                 }
 

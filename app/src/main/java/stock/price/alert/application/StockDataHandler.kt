@@ -8,234 +8,137 @@ import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.lifecycle.viewModelScope
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-import com.github.mikephil.charting.charts.LineChart
-import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.launch
 import org.json.JSONObject
-import java.time.LocalDate
 import java.util.*
-import java.util.concurrent.locks.Condition
-import java.util.concurrent.locks.ReentrantLock
 import kotlin.collections.HashMap
-import kotlin.concurrent.withLock
 
 
 @RequiresApi(Build.VERSION_CODES.O)
-class StockDataHandler(val context : Context, val symbol: String) {
-    private var queryMap = HashMap<String, JSONObject>()
-    private var parsedResponse = hashMapOf<String, Vector<Pair<String, Float>>>()
-    private var dataLock : HashMap<String, ReentrantLock>
-    private var lockCond = hashMapOf<String, Condition>()
-
-    init { // init lock condition
-        dataLock = hashMapOf(
-            "day" to ReentrantLock(),
-            "week" to ReentrantLock(),
-            "3week" to ReentrantLock(),
-            "month" to ReentrantLock(),
-            "3month" to ReentrantLock(),
-            "year" to ReentrantLock(),
-            "5year" to ReentrantLock()
-        )
-        for ((k, v) in dataLock) {
-            lockCond[k] = v.newCondition()
-        }
+class StockDataQueryAPIs(val context : Context, val symbol: String) {
+    var cQueryFuncs = HashMap<String, String>()
+    init {
+        cQueryFuncs["day"] = "TIME_SERIES_INTRADAY" // compact 5 min
+        cQueryFuncs["week"] = "TIME_SERIES_INTRADAY" // compact 60 mins
+        cQueryFuncs["month"] = "TIME_SERIES_DAILY_ADJUSTED" // compact daily adjusted 30
+        cQueryFuncs["3month"] = "TIME_SERIES_DAILY_ADJUSTED" // compact daily adjusted 90
+        cQueryFuncs["year"] = "TIME_SERIES_WEEKLY_ADJUSTED" //
+        cQueryFuncs["5year"] = "TIME_SERIES_WEEKLY_ADJUSTED" //
     }
 
-    fun QueryDataThenPlot(type : String, ploter: PricePloter)  {
-        // if lock is in used, wait for data before ploting
-        if (dataLock[type]?.isLocked!!) {
-            dataLock[type]?.withLock {
-                ploter.PlotData(parsedResponse[type])
-            }
-            return
-        }
-
-        // if lock not in used, check if result already exists.
-        if (parsedResponse.containsKey(type)) {
-            ploter.PlotData(parsedResponse[type])
-        }
-        // if result not exists yet, check of json response received yet
-        else {
-            if (queryMap.containsKey(QueryAPI().cQueryFuncs[type])) {
-                dataLock[type]!!.withLock {
-                    SetResponseData(type)
-                }
-                ploter.PlotData(parsedResponse[type])
-            }
-            else {
-                // if both data and response not exists, make query with ploter call back
-                MakeQuery(type, ploter)
-            }
-        }
-    }
-
-    fun QueryData(type : String) {
-        // if lock in use, do noting and wait for result
-        if (dataLock[type]?.isLocked!!) {
-            return
-        }
-
-        // if lock not in use and result is not ready, make query now
-        if (!parsedResponse.containsKey(type)) {
-            // if data set not exists but url response exists, parse it
-            if (queryMap.containsKey(QueryAPI().cQueryFuncs[type])) {
-                dataLock[type]!!.withLock {
-                    SetResponseData(type)
-                }
-            }
-            // no data and not response exists yet
-            else {
-                MakeQuery(type, null)
-            }
-        }
-    }
-
-
-    fun MakeQuery(type : String, ploter : PricePloter?) {
-        val textView : TextView? = (context as Activity).findViewById(R.id.responseTextView)
+    // Make network query of ticker price data in background threads
+    fun DoBackgroundNetworkQuery(
+        type : String,  // query type
+        ticketViewModel : TickerViewModel, // callback for parsing response
+        update : Boolean)
+    {
         val requestQueue = Volley.newRequestQueue(context)
         val jsonObjectRequest = JsonObjectRequest(
-            Request.Method.GET, QueryAPI().GenQueryStr(type, symbol), null,
+            Request.Method.GET, GenQueryStr(type, symbol), null,
             Response.Listener { response ->
                 Toast.makeText(context, "success", Toast.LENGTH_SHORT).show()
 
-                // for debug, print out
-                textView?.text = "Response: %s".format(response.toString())
-
-                // process data
-                dataLock[type]?.withLock {
-                    // skip if data already saved
-                    if (!parsedResponse.containsKey(type))
-                    {
-                        Log.d("RESP", response.toString())
-                        // save response to map
-                        AddResponse(QueryAPI().cQueryFuncs[type]!!, response.toString())
-                        // parse current response into data set
-                        SetResponseData(type)
-                        Log.d("CHECKDATA", parsedResponse[type].toString())
-                        lockCond[type]?.signalAll()
-                    }
-                }
-
-                // make ploter callback if available, plot update UI in main thread
-                ploter?.let{
-                    val mainUI = Handler(context.mainLooper)
-                    mainUI.post {
-                        ploter.PlotData(parsedResponse[type])
+                // if response is valid, let viewModel parse response in background
+                checkResponse(type, response)
+                ticketViewModel.viewModelScope.launch {
+                    ticketViewModel.ProcessReponse(type, response)
+                    if (update) {
+                        ticketViewModel.SetPriceSeries(type)
                     }
                 }
             },
             Response.ErrorListener { error ->
                 // TODO: Handle error
-                textView?.text = "Response: %s".format(error.toString())
                 Toast.makeText(context, error.toString(), Toast.LENGTH_SHORT).show()
-
             }
         )
         // Access the RequestQueue through your singleton class.
         requestQueue.add(jsonObjectRequest)
     }
 
-    fun AddResponse(queryFunc : String, resp : String) {
-        // save type->resp pair to map
+    fun checkResponse(type : String, resp : JSONObject) {
         val metaKey = "Meta Data"
-        val respJSON = JSONObject(resp)
-        if (respJSON.opt(metaKey) == null) {
-            throw Exception("Error: Invalid query response: $queryFunc")
+        if (resp.opt(metaKey) == null) {
+            Log.d("RESP", resp.toString())
+            throw Exception("Error: Invalid query response: $type")
         }
-        queryMap.set(queryFunc, respJSON)
     }
 
 
-    // pasre and cache response data
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun SetResponseData(type : String) : Vector<Pair<String, Float>>? {
-        var range : Int
-        var freq : Int
-        when(type) {
-            "day" -> { range = 1; freq = 1 }
-            "week" -> { range = 7; freq = 1 }
-            "month" -> { range = 30; freq = 1 }
-            "3month" -> { range = 90; freq = 1 }
-            "year" -> { range = 365; freq = 1 }
-            "5year" -> { range = 825; freq = 1 }
-            else -> throw Exception("Error: Invalid data type requested")
-        }
+    /* APIs for ticker probing */
 
-        if (!parsedResponse.containsKey(type)) {
-            parseResponse(type, range, freq)
-        }
-        return parsedResponse[type]
+    fun ProbTicker(search : String) : String {
+        val query = "search?q=" + search
+        val probURL = probQuestURL + query + delim + initProbOptions()
+        return probURL
     }
 
-    fun GetResponse(type : String) : String? {
-        return queryMap.get(getFuncType(type)).toString()
-    }
+    fun ParseProbResponse(response : JSONObject) : ArrayList<String> {
+        var ret = ArrayList<String>()
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun parseResponse(type : String, range : Int, freq : Int) {
-        var dataKey : String  // data field tag
-        var valueKey : String // data point tag
-        when(type) {
-            "day" -> { dataKey = "Time Series (5min)"; valueKey = "4. close" }
-            "week" -> { dataKey = "Time Series (60min)"; valueKey = "4. close" }
-            "month" -> { dataKey = "Time Series (Daily)"; valueKey = "5. adjusted close" }
-            "3month" -> { dataKey = "Time Series (Daily)"; valueKey = "5. adjusted close" }
-            "year" -> { dataKey = "Weekly Adjusted Time Series"; valueKey = "5. adjusted close" }
-            "5year" -> { dataKey = "Weekly Adjusted Time Series"; valueKey = "5. adjusted close" }
-            else -> throw Exception("Error: Try to parse invalid data type")
-        }
-
-        Log.d("TOPARSE", queryMap[getFuncType(type)].toString())
-        // construct time range by computing start date of sampling
-        val timeStampStr = queryMap[getFuncType(type)]?.getJSONObject("Meta Data")
-            ?.getString("3. Last Refreshed")
-            ?: throw Exception("Error: Cannot get data timestamp")
-        val endDateStr : String = timeStampStr.split(" ")[0]
-        val endDate = LocalDate.parse(endDateStr)
-        val startDate = endDate.plusDays((-range).toLong())
-        Log.d("STARTDATE", startDate.toString())
-
-        parsedResponse[type] = Vector()
-        var pickCnt = 0  // only sample at desired frequency
-        val data = queryMap.get(getFuncType(type))!!.getJSONObject(dataKey)
-        val timePoint = data.keys() // keys should be an ordered list of time string
-        while(timePoint.hasNext()) {
-            // extract sample's date info
-            val timeStr : String = timePoint.next()
-            val dateStr = timeStr.split(" ")[0]
-            val date = LocalDate.parse(dateStr)
-
-            val step = data.getJSONObject(timeStr)
-            // date range check
-            if (date.isAfter(startDate)) {
-                pickCnt++
-                if (pickCnt == freq) { // sample at freq
-                    parsedResponse[type]!!.add(0, Pair(timeStr, step.getString(valueKey).toFloat()))
-                    pickCnt = 0
-                }
+        val companies = response.getJSONArray("quotes")
+        for (i in 0 until companies.length()) {
+            val company = companies.getJSONObject(i)
+            if (company.has("shortname") && company.has("symbol")) {
+                val name = company.getString("shortname")
+                val symbol = company.getString("symbol")
+                ret.add("$name : $symbol")
             }
-            else {
-                // reach start date, stop sampling
-                break
-            }
-        } // while
+        }
+        return ret
     }
 
-        private fun getFuncType(type : String) : String {
-            return when(type) {
-                "day" -> "TIME_SERIES_INTRADAY" // compact 5 min
-                "week" -> "TIME_SERIES_INTRADAY" // compact 60 mins
-                "month" -> "TIME_SERIES_DAILY_ADJUSTED" // compact daily adjusted 30
-                "3month" -> "TIME_SERIES_DAILY_ADJUSTED" // compact daily adjusted 90
-                "year" -> "TIME_SERIES_WEEKLY_ADJUSTED" //
-                "5year" -> "TIME_SERIES_WEEKLY_ADJUSTED"
-                else -> throw Exception("Error: Invalid FuncType key.")
-            } //
-        }
+    private fun initProbOptions() : String {
+        val quotes_count = "quotesCount=6"
+        val news_count = "newsCount=0"
+        val fussySearch = "enableFuzzyQuery=false"
+        val queryOptions = "&quotesQueryId=tss_match_phrase_query&multiQuoteQueryId=multi_quote_single_token_query"
+        val otherOptions = "enableCb=true&enableEnhancedTrivialQuery=true"
 
+        val optStr = quotes_count + delim + news_count + delim + fussySearch + delim +
+                queryOptions + delim + otherOptions
+        return optStr
+    }
+
+    fun GenAllQueryStr(ticket : String) :MutableList<String> {
+        var queryStrArray : MutableList<String> = ArrayList()
+        for (func in cQueryFuncs.values) {
+            queryStrArray.add(GenQueryStr(func, ticket))
+        }
+        return queryStrArray
+    }
+
+    // sanity check of func is done by getFuncStr(func: String)
+    fun GenQueryStr(func : String, ticker : String) : String {
+        val optinal_interval = when(func) {
+            // TODO: 1mins for intraday only covers utill 2pm, full size is too big
+            "day" -> "interval=5min"
+            "week" -> "interval=60min"
+            else -> "" } + delim
+
+        val queryURL = priceQueryURL + getFuncStr(func) + delim +
+                "symbol=" + ticker + delim +
+                optinal_interval + priceQueryKey
+
+        return queryURL
+    }
+
+    // this interface also do the sanity check on query type
+    private fun getFuncStr(func: String): String {
+        val prefix = "function="
+        if (!cQueryFuncs.containsKey(func)) {
+            throw Exception("Error: Unsupported query")
+        }
+        return prefix + cQueryFuncs[func]
+    }
+
+    private val probQuestURL = "https://query2.finance.yahoo.com/v1/finance/"
+    private val priceQueryURL = "https://www.alphavantage.co/query?"
+    private val priceQueryKey = "apikey=5B4ZQG1WXCAB5L1N"
+    private val delim = "&"
 }
