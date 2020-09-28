@@ -44,13 +44,14 @@ class StockDataQueryAPIs(val context : Context, val symbol: String) {
                 Toast.makeText(context, "success", Toast.LENGTH_SHORT).show()
 
                 // if response is valid, let viewModel parse response in background
-                checkResponse(type, response)
-                ticketViewModel.viewModelScope.launch {
-                    ticketViewModel.ProcessReponse(type, response)
-                    if (update) {
-                        ticketViewModel.SetPriceSeries(type)
-                    }
-                }
+                if (checkResponse(type, response)) {
+                    ticketViewModel.viewModelScope.launch {
+                        ticketViewModel.ProcessReponse(type, response)
+                        if (update) {
+                            ticketViewModel.SetPriceSeries(type)
+                        }
+                    } // viewModel coroutine launch
+                } // if valid response
             },
             Response.ErrorListener { error ->
                 // TODO: Handle error
@@ -61,12 +62,26 @@ class StockDataQueryAPIs(val context : Context, val symbol: String) {
         requestQueue.add(jsonObjectRequest)
     }
 
-    fun checkResponse(type : String, resp : JSONObject) {
-        val metaKey = "Meta Data"
-        if (resp.opt(metaKey) == null) {
-            Log.d("RESP", resp.toString())
-            throw Exception("Error: Invalid query response: $type")
+    fun checkResponse(type : String, resp : JSONObject) : Boolean {
+        val validRespStr = "Meta Data"
+        if (resp.opt(validRespStr) == null) {
+            if (resp.opt("Note") != null) {
+                val thankyouStr = "Thank you for using the app, your current status only allows" +
+                        "1 ticker query per minutes."
+                Toast.makeText(context, thankyouStr, Toast.LENGTH_SHORT).show()
+                return false
+            }
+            else if (resp.opt("Error Message") != null) {
+                val errorStr = "Invalid ticker information. Please check for correct ticker symbol"
+                Toast.makeText(context, errorStr, Toast.LENGTH_SHORT).show()
+                return false
+            }
+            else {
+                Log.d("RESP", resp.toString())
+                throw Exception("Error: Invalid query response: $type")
+            }
         }
+        return true
     }
 
 

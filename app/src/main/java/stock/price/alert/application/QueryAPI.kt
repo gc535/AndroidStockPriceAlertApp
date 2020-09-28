@@ -30,7 +30,12 @@ class QueryAPI {
             if (company.has("shortname") && company.has("symbol")) {
                 val name = company.getString("shortname")
                 val symbol = company.getString("symbol")
-                ret.add("$name : $symbol")
+
+                // check symbol syntax, only add valid symbol (characters only)
+                val pattern = "[a-zA-Z]+".toRegex()
+                if (pattern.matches(symbol)) {
+                    ret.add("$name : $symbol")
+                }
             }
         }
         return ret

@@ -15,11 +15,18 @@ import java.time.LocalDate
 import java.util.*
 
 class TickerViewModel : ViewModel() {
-    var mSymbol : String = "Null"
     private var curType = "Null"
     private var respMap = HashMap<String, JSONObject>()
     private var priceData = HashMap<String, Vector<Pair<String, Float>>>()
+
+    private var symbol = MutableLiveData<String>()
+    private var name = MutableLiveData<String>()
+    private var price = MutableLiveData<String> ()
     private var priceSeries = MutableLiveData<Vector<Pair<String, Float>>>()
+
+    val mSymbol : LiveData<String> get() = symbol
+    val mName : LiveData<String> get() = name
+    val mPrice : LiveData<String> get() = price
     val mPriceSeries : LiveData<Vector<Pair<String, Float>>> get() = priceSeries
 
 
@@ -27,9 +34,10 @@ class TickerViewModel : ViewModel() {
         DAY, WEEK, MONTH, MONTH3, YEAR, YEAR5
     }
 
-    fun MaybeRefresh(symbol : String) {
-        if (symbol != mSymbol) {
-            mSymbol = symbol
+    fun MaybeRefresh(new_symbol : String, new_name : String) {
+        if (new_symbol != symbol.value) {
+            symbol.postValue(new_symbol)
+            name.postValue(new_name)
             respMap.clear()
             priceData.clear()
             priceSeries = MutableLiveData()
@@ -79,8 +87,11 @@ class TickerViewModel : ViewModel() {
         }
     }
 
+    // update price and dataset for displaying
     fun SetPriceSeries(type : String) {
         Log.d("UPDATE", priceData[type].toString())
+        val priceStr : String = "$" + "%.2f".format(priceData[type]!!.lastElement().second)
+        price.postValue(priceStr)
         priceSeries.postValue(priceData[type])
     }
 

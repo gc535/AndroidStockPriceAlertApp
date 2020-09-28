@@ -27,26 +27,22 @@ class SearchActivity : AppCompatActivity() {
         result_listview.divider = null
         result_listview.dividerHeight = 0
 
-        result_listview.onItemClickListener = AdapterView.OnItemClickListener { parent, view, position, id ->
-            val ticket_symbol = parent?.getItemAtPosition(position) as String
-            ticket_symbol?.let{
-                val intent = Intent(Intent(this@SearchActivity, TickerExploreActivity::class.java))
-                intent.putExtra("symbol", ticket_symbol.split(" : ")[1])
-                startActivity(intent)
-                //val queryMap : HashMap<String, String> =
-                //    hashMapOf("day" to response.toString())
-                //val intent = Intent(Intent(this@SearchActivity, TickerExploreActivity::class.java))
-                //intent.putExtra("queryMap", queryMap)
-                //startActivity(intent)
+        result_listview.onItemClickListener =
+            AdapterView.OnItemClickListener { parent, view, position, id ->
+                val ticket_symbol = parent?.getItemAtPosition(position) as String
+                ticket_symbol?.let{
+                    val intent =
+                        Intent(Intent(this@SearchActivity, TickerExploreActivity::class.java))
+                    intent.putExtra("name", ticket_symbol.split(" : ")[0])
+                    intent.putExtra("symbol", ticket_symbol.split(" : ")[1])
+                    startActivity(intent)
+                }
             }
-        }
 
-        instantiateSearchLogic()
-
-
+        initSearchLogic()
     }
 
-    private fun instantiateSearchLogic() {
+    private fun initSearchLogic() {
 
         val searchBar: SearchView = findViewById(R.id.searchBar)
         searchBar.setIconifiedByDefault(false)
@@ -58,22 +54,18 @@ class SearchActivity : AppCompatActivity() {
             }
 
             override fun onQueryTextChange(newText: String): Boolean {
-                val textView: TextView = findViewById(R.id.textView)
                 val requestQueue = Volley.newRequestQueue(this@SearchActivity)
                 val jsonObjectRequest = JsonObjectRequest(
                     Request.Method.GET, QueryAPI().ProbTicker(newText), null,
                     Response.Listener { response->
                         // populate search array
-                        //textView.text = "Response: %s".format(response.toString())
-                        //Toast.makeText(applicationContext, "success", Toast.LENGTH_SHORT).show()
-                        searchAdaptor = ArrayAdapter(this@SearchActivity, android.R.layout.simple_list_item_1, QueryAPI().ParseProbResponse(response))
+                        searchAdaptor = ArrayAdapter(
+                            this@SearchActivity,
+                            android.R.layout.simple_list_item_1, QueryAPI().ParseProbResponse(response))
                         result_listview.adapter = searchAdaptor
                     },
                     Response.ErrorListener { error ->
                         // TODO: Handle error
-                        textView.text = "Response: %s".format(error.toString())
-                        Toast.makeText(applicationContext, error.toString(), Toast.LENGTH_SHORT).show()
-
                     }
                 )
 

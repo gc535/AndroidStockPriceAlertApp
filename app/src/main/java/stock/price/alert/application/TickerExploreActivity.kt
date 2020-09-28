@@ -46,6 +46,7 @@ class TickerExploreActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     private lateinit var queryAPIs: StockDataQueryAPIs
     private lateinit var symbol : String
+    private lateinit var name : String
     private val viewModel : TickerViewModel by viewModels()
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -54,11 +55,42 @@ class TickerExploreActivity : AppCompatActivity() {
         setContentView(R.layout.fragment_ticker_explore)
 
         // init private member variables
+        name = intent.getSerializableExtra("name") as String
         symbol = intent.getSerializableExtra("symbol") as String
         queryAPIs = StockDataQueryAPIs(this, symbol)
 
         // setup viewModel to observe price series data
-        viewModel.MaybeRefresh(symbol)
+        viewModel.MaybeRefresh(symbol, name)
+        observeViewModel()
+
+        // update and load ticker price data in background
+        viewModel.UpdatePriceInBackGround("day", queryAPIs)
+        //viewModel.LoadPriceInBackGround("week", queryAPIs)
+        //viewModel.LoadPriceInBackGround("3month", queryAPIs)
+        //viewModel.LoadPriceInBackGround("5year", queryAPIs)
+
+        // init buttons
+        initPriceButtons()
+    }
+
+    // define subscription to view model data
+    private fun observeViewModel() {
+        viewModel.mSymbol.observe(
+            this, Observer { symbolStr ->
+                symbol_TextView.text = symbolStr
+            }
+        )
+        viewModel.mName.observe(
+            this, Observer { nameStr ->
+                name_TextView.text = nameStr
+            }
+        )
+        viewModel.mPrice.observe(
+            this, Observer { priceStr ->
+                price_TextView.text = priceStr
+            }
+        )
+
         viewModel.mPriceSeries.observe(
             this, Observer{ priceSeries ->
                 // update plot
@@ -68,19 +100,7 @@ class TickerExploreActivity : AppCompatActivity() {
                 pricePloter.PlotData(priceSeries)
             }
         )
-
-        // update and load ticker price data in background
-        viewModel.UpdatePriceInBackGround("day", queryAPIs)
-        viewModel.LoadPriceInBackGround("week", queryAPIs)
-        viewModel.LoadPriceInBackGround("3month", queryAPIs)
-        viewModel.LoadPriceInBackGround("5year", queryAPIs)
-
-        // init buttons
-        initPriceButtons()
-
-
     }
-
 
     private fun initPriceButtons() {
         // by default, 1d button is pressed on init
