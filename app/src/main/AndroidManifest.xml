@@ -20,7 +20,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".SearchActivity" >
+        <activity android:name=".ui.search.SearchActivity" >
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
             </intent-filter>
@@ -29,7 +29,16 @@
         </activity>
 
 
-        <activity android:name=".TickerExploreActivity" />
+        <activity android:name=".ui.stock.TickerExploreActivity" />
+
+        <service android:name=".service.RealTimePriceAlert.RealTimePriceAlertService" />
+
+        <receiver android:name=".service.RealTimePriceAlert.RealTimePriceAlertAlarmReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.SET_REALTIME_PRICE_CHECK_ALARM" />
+            </intent-filter>
+        </receiver>
 
     </application>
 
