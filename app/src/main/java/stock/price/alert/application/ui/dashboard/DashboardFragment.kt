@@ -1,5 +1,7 @@
 package stock.price.alert.application.ui.dashboard
 
+import android.app.AlarmManager
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -13,7 +15,7 @@ import stock.price.alert.application.R
 class DashboardFragment : Fragment() {
 
     private lateinit var dashboardViewModel: DashboardViewModel
-
+    private lateinit var alarmMgr : AlarmManager
     override fun onCreateView(
             inflater: LayoutInflater,
             container: ViewGroup?,
@@ -22,10 +24,13 @@ class DashboardFragment : Fragment() {
         dashboardViewModel =
                 ViewModelProviders.of(this).get(DashboardViewModel::class.java)
         val root = inflater.inflate(R.layout.fragment_dashboard, container, false)
+
+
         val textView: TextView = root.findViewById(R.id.text_dashboard)
         dashboardViewModel.text.observe(viewLifecycleOwner, Observer {
             textView.text = it
         })
+
         return root
     }
 }

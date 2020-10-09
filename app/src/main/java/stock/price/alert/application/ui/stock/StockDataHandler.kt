@@ -1,11 +1,8 @@
-package stock.price.alert.application
+package stock.price.alert.application.ui.stock
 
-import android.app.Activity
 import android.content.Context
 import android.os.Build
-import android.os.Handler
 import android.util.Log
-import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.viewModelScope
@@ -20,7 +17,7 @@ import kotlin.collections.HashMap
 
 
 @RequiresApi(Build.VERSION_CODES.O)
-class StockDataQueryAPIs(val context : Context, val symbol: String) {
+class StockDataQueryAPIs(private val context : Context, private val symbol: String) {
     var cQueryFuncs = HashMap<String, String>()
     init {
         cQueryFuncs["day"] = "TIME_SERIES_INTRADAY" // compact 5 min

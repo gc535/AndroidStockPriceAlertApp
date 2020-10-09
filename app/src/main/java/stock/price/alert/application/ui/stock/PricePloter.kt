@@ -1,4 +1,4 @@
-package stock.price.alert.application
+package stock.price.alert.application.ui.stock
 
 import android.graphics.Color
 import com.github.mikephil.charting.charts.LineChart

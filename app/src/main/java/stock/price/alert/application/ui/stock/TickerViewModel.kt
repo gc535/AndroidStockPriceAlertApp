@@ -1,4 +1,4 @@
-package stock.price.alert.application
+package stock.price.alert.application.ui.stock
 
 import android.os.Build
 import android.util.Log
@@ -7,8 +7,6 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.android.volley.Response
-import com.anychart.charts.Stock
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.time.LocalDate

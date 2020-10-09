@@ -1,45 +1,18 @@
-package stock.price.alert.application
+package stock.price.alert.application.ui.stock
 
-import android.graphics.Color
-import android.os.AsyncTask
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
-import android.widget.TextView
-import android.widget.Toast
-import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
-import com.android.volley.Request
-import com.android.volley.Response
-import com.android.volley.toolbox.JsonObjectRequest
-import com.android.volley.toolbox.Volley
-import com.anychart.AnyChart
-import com.anychart.AnyChartView
-import com.anychart.chart.common.dataentry.DataEntry
-import com.anychart.chart.common.dataentry.ValueDataEntry
-import com.anychart.charts.Cartesian
-import com.anychart.core.cartesian.series.Line
-import com.anychart.core.ui.DataArea
-import com.anychart.data.Mapping
-import com.anychart.data.Set
-import com.anychart.enums.Anchor
-import com.anychart.graphics.vector.Stroke
+import androidx.lifecycle.ViewModelProviders
 import com.github.mikephil.charting.charts.LineChart
-import com.github.mikephil.charting.data.Entry
-import com.github.mikephil.charting.data.LineData
-import com.github.mikephil.charting.data.LineDataSet
-import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
 import kotlinx.android.synthetic.main.fragment_ticker_explore.*
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import java.util.*
+import stock.price.alert.application.R
 
 
 class TickerExploreActivity : AppCompatActivity() {
@@ -47,27 +20,34 @@ class TickerExploreActivity : AppCompatActivity() {
     private lateinit var queryAPIs: StockDataQueryAPIs
     private lateinit var symbol : String
     private lateinit var name : String
-    private val viewModel : TickerViewModel by viewModels()
+    private lateinit var tickerViewModel : TickerViewModel
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        tickerViewModel =
+            ViewModelProviders.of(this).get(TickerViewModel::class.java)
         setContentView(R.layout.fragment_ticker_explore)
 
         // init private member variables
+        tickerViewModel =
+            ViewModelProviders.of(this).get(TickerViewModel::class.java)
         name = intent.getSerializableExtra("name") as String
         symbol = intent.getSerializableExtra("symbol") as String
-        queryAPIs = StockDataQueryAPIs(this, symbol)
+        queryAPIs = StockDataQueryAPIs(
+            this,
+            symbol
+        )
 
         // setup viewModel to observe price series data
-        viewModel.MaybeRefresh(symbol, name)
+        tickerViewModel.MaybeRefresh(symbol, name)
         observeViewModel()
 
         // update and load ticker price data in background
-        viewModel.UpdatePriceInBackGround("day", queryAPIs)
-        //viewModel.LoadPriceInBackGround("week", queryAPIs)
-        //viewModel.LoadPriceInBackGround("3month", queryAPIs)
-        //viewModel.LoadPriceInBackGround("5year", queryAPIs)
+        tickerViewModel.UpdatePriceInBackGround("day", queryAPIs)
+        //tickerViewModel.LoadPriceInBackGround("week", queryAPIs)
+        //tickerViewModel.LoadPriceInBackGround("3month", queryAPIs)
+        //tickerViewModel.LoadPriceInBackGround("5year", queryAPIs)
 
         // init buttons
         initPriceButtons()
@@ -75,28 +55,29 @@ class TickerExploreActivity : AppCompatActivity() {
 
     // define subscription to view model data
     private fun observeViewModel() {
-        viewModel.mSymbol.observe(
+        tickerViewModel.mSymbol.observe(
             this, Observer { symbolStr ->
                 symbol_TextView.text = symbolStr
             }
         )
-        viewModel.mName.observe(
+        tickerViewModel.mName.observe(
             this, Observer { nameStr ->
                 name_TextView.text = nameStr
             }
         )
-        viewModel.mPrice.observe(
+        tickerViewModel.mPrice.observe(
             this, Observer { priceStr ->
                 price_TextView.text = priceStr
             }
         )
 
-        viewModel.mPriceSeries.observe(
+        tickerViewModel.mPriceSeries.observe(
             this, Observer{ priceSeries ->
                 // update plot
                 Log.d("OB", priceSeries.toString())
                 val priceChart: LineChart = findViewById(R.id.pricePlot)
-                var pricePloter = PricePloter(priceChart)
+                var pricePloter =
+                    PricePloter(priceChart)
                 pricePloter.PlotData(priceSeries)
             }
         )
@@ -118,7 +99,7 @@ class TickerExploreActivity : AppCompatActivity() {
                     clearButtonState(button_1y)
                     clearButtonState(button_5y)
                     setButtonState(button_1d)
-                    viewModel.UpdatePriceInBackGround("day", queryAPIs)
+                    tickerViewModel.UpdatePriceInBackGround("day", queryAPIs)
                     return true
                 }
 
@@ -140,7 +121,7 @@ class TickerExploreActivity : AppCompatActivity() {
                     clearButtonState(button_1y)
                     clearButtonState(button_5y)
                     setButtonState(button_1w)
-                    viewModel.UpdatePriceInBackGround("week", queryAPIs)
+                    tickerViewModel.UpdatePriceInBackGround("week", queryAPIs)
                     return true
                 }
 
@@ -162,7 +143,7 @@ class TickerExploreActivity : AppCompatActivity() {
                     clearButtonState(button_1y)
                     clearButtonState(button_5y)
                     setButtonState(button_1m)
-                    viewModel.UpdatePriceInBackGround("month", queryAPIs)
+                    tickerViewModel.UpdatePriceInBackGround("month", queryAPIs)
                     return true
                 }
 
@@ -184,7 +165,7 @@ class TickerExploreActivity : AppCompatActivity() {
                     clearButtonState(button_1y)
                     clearButtonState(button_5y)
                     setButtonState(button_3m)
-                    viewModel.UpdatePriceInBackGround("3month", queryAPIs)
+                    tickerViewModel.UpdatePriceInBackGround("3month", queryAPIs)
                     return true
                 }
 
@@ -206,7 +187,7 @@ class TickerExploreActivity : AppCompatActivity() {
                     clearButtonState(button_3m)
                     clearButtonState(button_5y)
                     setButtonState(button_1y)
-                    viewModel.UpdatePriceInBackGround("year", queryAPIs)
+                    tickerViewModel.UpdatePriceInBackGround("year", queryAPIs)
                     return true
                 }
 
@@ -228,7 +209,7 @@ class TickerExploreActivity : AppCompatActivity() {
                     clearButtonState(button_3m)
                     clearButtonState(button_1y)
                     setButtonState(button_5y)
-                    viewModel.UpdatePriceInBackGround("5year", queryAPIs)
+                    tickerViewModel.UpdatePriceInBackGround("5year", queryAPIs)
                     return true
                 }
 

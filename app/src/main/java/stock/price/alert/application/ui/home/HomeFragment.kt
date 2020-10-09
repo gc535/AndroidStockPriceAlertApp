@@ -5,12 +5,11 @@ import android.os.Bundle
 import android.view.*
 import android.widget.Button
 import android.widget.TextView
-import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import stock.price.alert.application.R
-import stock.price.alert.application.SearchActivity
+import stock.price.alert.application.ui.search.SearchActivity
 
 class HomeFragment : Fragment() {
 
