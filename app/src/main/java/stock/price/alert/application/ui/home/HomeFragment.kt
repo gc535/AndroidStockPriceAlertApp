@@ -1,6 +1,5 @@
 package stock.price.alert.application.ui.home
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.*
 import android.widget.Button
@@ -8,8 +7,8 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
+import androidx.navigation.fragment.findNavController
 import stock.price.alert.application.R
-import stock.price.alert.application.ui.search.SearchActivity
 
 class HomeFragment : Fragment() {
 
@@ -30,8 +29,9 @@ class HomeFragment : Fragment() {
 
         val searchButton: Button = root.findViewById(R.id.goToSearchActivity)
         searchButton.setOnClickListener {
-            val intent = Intent(this@HomeFragment.context, SearchActivity::class.java)
-            startActivity(intent)
+            val goto_search_action = HomeFragmentDirections
+                .actionNavigationHomeToNavigationTickerSearch().setForceSearch(true)
+            findNavController().navigate(goto_search_action)
         }
         
         return root

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="stock.price.alert.application">
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -31,9 +32,11 @@
 
         <activity android:name=".ui.stock.TickerExploreActivity" />
 
-        <service android:name=".service.RealTimePriceAlert.RealTimePriceAlertService" />
+        <service android:name=".service.RealTimePriceAlert.RealTimePriceAlertService"
+            android:permission="android.permission.BIND_JOB_SERVICE"/>
 
-        <receiver android:name=".service.RealTimePriceAlert.RealTimePriceAlertAlarmReceiver">
+        <receiver android:name=".service.RealTimePriceAlert.RealTimePriceAlertAlarmReceiver"
+            android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.SET_REALTIME_PRICE_CHECK_ALARM" />

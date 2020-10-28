@@ -9,7 +9,12 @@
         android:id="@+id/navigation_home"
         android:name="stock.price.alert.application.ui.home.HomeFragment"
         android:label="@string/title_home"
-        tools:layout="@layout/fragment_home" />
+        tools:layout="@layout/fragment_home" >
+        <action
+            android:id="@+id/action_navigation_home_to_navigation_ticker_search"
+            app:destination="@id/navigation_ticker_search" />
+    </fragment>
+
 
     <fragment
         android:id="@+id/navigation_dashboard"
@@ -22,4 +27,35 @@
         android:name="stock.price.alert.application.ui.notifications.NotificationsFragment"
         android:label="@string/title_notifications"
         tools:layout="@layout/fragment_notifications" />
+
+    <fragment
+        android:id="@+id/navigation_ticker_search"
+        android:name="stock.price.alert.application.ui.search.SearchFragment"
+        android:label="@string/title_ticker_search"
+        tools:layout="@layout/fragment_search">
+        <action
+            android:id="@+id/action_navigation_tickerSearch_to_tickerExploreFragment"
+            app:destination="@id/navigation_ticker_explorer" />
+        <argument
+            android:name="ForceSearch"
+            app:argType="boolean"
+            android:defaultValue="false" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_ticker_explorer"
+        android:name="stock.price.alert.application.ui.stock.TickerExploreFragment"
+        android:label="TickerExplorer"
+        tools:layout="@layout/fragment_ticker_explore" >
+        <argument
+            android:name="ticker_name"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="ticker_symbol"
+            app:argType="string"
+            app:nullable="true" />
+    </fragment>
+
+
 </navigation>

@@ -1,12 +1,15 @@
 package stock.price.alert.application.service.RealTimePriceAlert
 
 import android.app.Notification
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import android.widget.Toast
 import androidx.core.app.JobIntentService
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.TaskStackBuilder
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
@@ -14,22 +17,18 @@ import com.android.volley.toolbox.Volley
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import stock.price.alert.application.ui.notifications.NotificationBuilder
+import stock.price.alert.application.ui.stock.TickerExploreActivity
 
 class RealTimePriceAlertService  : JobIntentService() {
-
     private val scope = CoroutineScope(Job() + Dispatchers.Main)
-    fun cleanUp() {
-        // Cancel the scope to cancel ongoing coroutines work
-        scope.cancel()
-    }
 
     companion object {
         // Job-ID must be unique across your whole app.
-        private val cUnique_Service_ID : Int = "RealTimePriceSerice".toInt()
+        private val REALTIME_PRICE_JOB_ID : Int = 10
+        private val REALTIME_PRICE_JOB_NAME = "RealTimePriceSerice"
 
         fun enqueueWork(context: Context, intent: Intent) {
-            enqueueWork(context, RealTimePriceAlertService::class.java,
-                cUnique_Service_ID, intent)
+            enqueueWork(context, RealTimePriceAlertService::class.java, REALTIME_PRICE_JOB_ID, intent)
         }
     }
 
@@ -39,21 +38,28 @@ class RealTimePriceAlertService  : JobIntentService() {
         Log.d("Service", "RealTimePriceAlertService Created.")
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        scope.cancel()
+    }
+
 
     override fun onHandleWork(intent: Intent) {
+        Log.d("Service", "RealTimePriceAlertService job started.")
+        showDebugNotification()
+
         if (intent.hasExtra("symbols")
             && intent.hasExtra("limit")
             && intent.hasExtra("lowerBound"))
         {
             // fetch param from intent
-            val symbol = intent.getStringExtra("symbols")!!
-            val lowerBound = intent.getBooleanExtra("lowerBound", false)
-            val limit = if (lowerBound) intent.getFloatExtra("limit", Float.MIN_VALUE)
-                else intent.getFloatExtra("limit", Float.MAX_VALUE)
+            //val symbol = intent.getStringExtra("symbols")!!
+            //val lowerBound = intent.getBooleanExtra("lowerBound", false)
+            //val limit = if (lowerBound) intent.getFloatExtra("limit", Float.MIN_VALUE)
+            //    else intent.getFloatExtra("limit", Float.MAX_VALUE)
 
-            checkPriceTriggerInBackGround(symbol, limit, lowerBound)
+            //checkPriceTriggerInBackGround(symbol, limit, lowerBound)
         }
-
     }
 
     private val qUrl : String = "https://query1.finance.yahoo.com/v8/finance/chart/"
@@ -133,12 +139,49 @@ class RealTimePriceAlertService  : JobIntentService() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
 
-        val uniqueID : Int = cPriceAlertChId.toInt()
         with(NotificationManagerCompat.from(this)) {
             // notificationId is a unique int for each notification that you must define
-            notify(uniqueID, builder.build())
+            notify(REALTIME_PRICE_JOB_ID, builder.build())
         }
     }
 
+    private fun showDebugNotification() {
+        val builder = NotificationCompat.Builder(this, cPriceAlertChId)
+            .setSmallIcon(stock.price.alert.application.R.drawable.ic_baseline_show_chart_24)
+            .setContentTitle("Debug Notification")
+            .setContentText("This is a debug notification")
+            .setStyle(
+                NotificationCompat.BigTextStyle().bigText("This is a debug notification")
+            )
+            .setDefaults(Notification.DEFAULT_ALL)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
 
+        // create pending intent to jump to
+        val pendingIntent = createShowPricePendingIntent("Coca cola jumped", "KO")
+        pendingIntent?.let {
+            builder.setContentIntent(it)
+            builder.setAutoCancel(true)
+        }
+
+        with(NotificationManagerCompat.from(this)) {
+            // notificationId is a unique int for each notification that you must define
+            notify(REALTIME_PRICE_JOB_ID+1, builder.build())
+        }
+    }
+
+    // create pending intent with entire back stack
+    private fun createShowPricePendingIntent(ticker : String, symbol : String) : PendingIntent? {
+        val showRealTimePriceIntent = Intent(this, TickerExploreActivity::class.java)
+        showRealTimePriceIntent.putExtra("name", ticker)
+        showRealTimePriceIntent.putExtra("symbol", symbol)
+        val pendingIntent : PendingIntent? = TaskStackBuilder.create(this).run {
+            // Add the intent, which inflates the back stack
+            addNextIntentWithParentStack(showRealTimePriceIntent)
+            // Get the PendingIntent containing the entire back stack
+            getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT)
+        }
+
+        return pendingIntent
+    }
 }

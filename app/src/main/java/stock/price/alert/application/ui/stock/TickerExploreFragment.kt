@@ -8,16 +8,16 @@ import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
-import android.view.Gravity
-import android.view.MotionEvent
-import android.view.View
-import android.view.WindowManager
+import android.view.*
 import android.widget.Button
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.findNavController
+import androidx.navigation.fragment.navArgs
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
@@ -30,17 +30,21 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import kotlinx.android.synthetic.main.fragment_ticker_explore.*
 import kotlinx.coroutines.*
 import org.json.JSONObject
+import stock.price.alert.application.MainViewModel
 import stock.price.alert.application.R
 import stock.price.alert.application.service.RealTimePriceAlert.RealTimePriceAlertAlarmReceiver
+import stock.price.alert.application.ui.home.HomeViewModel
 
 
-class TickerExploreActivity : AppCompatActivity() {
+class TickerExploreFragment : Fragment() {
     @RequiresApi(Build.VERSION_CODES.O)
     private lateinit var queryAPIs: StockDataQueryAPIs
     private lateinit var symbol : String
     private lateinit var name : String
+    private lateinit var rootView: View
     private lateinit var tickerViewModel : TickerViewModel
-
+    private lateinit var mainViewModel : MainViewModel
+    private val args : TickerExploreFragmentArgs by navArgs()
     // test
     private val scope = CoroutineScope(Job() + Dispatchers.Main)
     override fun onDestroy() {
@@ -48,36 +52,49 @@ class TickerExploreActivity : AppCompatActivity() {
         scope.cancel()
     }
 
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        tickerViewModel = ViewModelProviders.of(this).get(TickerViewModel::class.java)
+        mainViewModel = ViewModelProviders.of(requireActivity()).get(MainViewModel::class.java)
+        rootView = inflater.inflate(R.layout.fragment_ticker_explore, container, false)
+
+        val name : String = mainViewModel.mCur_ticker_name.value.toString()
+        val symbol : String = mainViewModel.mCur_ticker_symbol.value.toString()
+        Log.d("hist", "$name, $symbol")
+        Log.d("HasHist", mainViewModel.mHasHistory.toString())
+        return rootView
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
-        tickerViewModel =
-            ViewModelProviders.of(this).get(TickerViewModel::class.java)
-        setContentView(R.layout.fragment_ticker_explore)
+        if (args.tickerName != null && args.tickerSymbol != null) {
+            name = args.tickerName as String
+            symbol = args.tickerSymbol as String
 
-        // init private member variables
-        tickerViewModel =
-            ViewModelProviders.of(this).get(TickerViewModel::class.java)
-        name = intent.getSerializableExtra("name") as String
-        symbol = intent.getSerializableExtra("symbol") as String
-        queryAPIs = StockDataQueryAPIs(
-            this,
-            symbol
-        )
+            // init query APIs
+            queryAPIs = StockDataQueryAPIs(requireContext(), symbol)
 
-        // setup viewModel to observe price series data
-        tickerViewModel.MaybeRefresh(symbol, name)
-        observeViewModel()
+            // setup viewModel to observe price series data
+            tickerViewModel.MaybeRefresh(symbol, name)
+            observeViewModel()
 
-        // update and load ticker price data in background
-        tickerViewModel.UpdatePriceInBackGround("day", queryAPIs)
-        //tickerViewModel.LoadPriceInBackGround("week", queryAPIs)
-        //tickerViewModel.LoadPriceInBackGround("3month", queryAPIs)
-        //tickerViewModel.LoadPriceInBackGround("5year", queryAPIs)
+            // update and load ticker price data in background
+            // todo: if data already exist then dont update in background
+            tickerViewModel.UpdatePriceInBackGround("day", queryAPIs)
+            //tickerViewModel.LoadPriceInBackGround("week", queryAPIs)
+            //tickerViewModel.LoadPriceInBackGround("3month", queryAPIs)
+            //tickerViewModel.LoadPriceInBackGround("5year", queryAPIs)
 
-        // init buttons
-        initPriceButtons()
+            // init buttons
+            initPriceButtons()
+        }
+
 
         // test watch button
         watch_Button.setOnClickListener(object : View.OnClickListener {
@@ -86,13 +103,14 @@ class TickerExploreActivity : AppCompatActivity() {
 
                 // test create price check alarm
 
-                val alarmMgr = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                val alarmMgr = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
                 val broadcastIntent =
-                    Intent(Intent(this@TickerExploreActivity,
-                                  RealTimePriceAlertAlarmReceiver::class.java)).apply {
+                    Intent(Intent(requireContext(),
+                        RealTimePriceAlertAlarmReceiver::class.java)).apply {
                         action = "android.intent.action.SET_REALTIME_PRICE_CHECK_ALARM"
                     }
-                var pendingIntent = PendingIntent.getBroadcast(applicationContext, 0, broadcastIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+                var pendingIntent = PendingIntent.getBroadcast(
+                    requireContext(), 0, broadcastIntent, PendingIntent.FLAG_UPDATE_CURRENT)
 
                 // set repeat clock every 5 sec
                 val interval : Long = 5* 1000
@@ -105,47 +123,35 @@ class TickerExploreActivity : AppCompatActivity() {
 
                 // display set price alert dialog
                 var setAlertDialog = SetAlertDialogFragment()
-                setAlertDialog.show(supportFragmentManager, "setAlertDialog")
+                setAlertDialog.show(childFragmentManager, "setAlertDialog")
 
             }
         })
     }
 
-    private fun initNavBar() {
-        val navView: BottomNavigationView = findViewById(R.id.nav_view)
-
-        val navController = findNavController(R.id.nav_host_fragment)
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
-        val appBarConfiguration = AppBarConfiguration(setOf(
-            R.id.navigation_home, R.id.navigation_dashboard, R.id.navigation_notifications))
-        setupActionBarWithNavController(navController, appBarConfiguration)
-        navView.setupWithNavController(navController)
-    }
-
     // define subscription to view model data
     private fun observeViewModel() {
         tickerViewModel.mSymbol.observe(
-            this, Observer { symbolStr ->
+            viewLifecycleOwner, Observer { symbolStr ->
                 symbol_TextView.text = symbolStr
             }
         )
         tickerViewModel.mName.observe(
-            this, Observer { nameStr ->
+            viewLifecycleOwner, Observer { nameStr ->
                 name_TextView.text = nameStr
             }
         )
         tickerViewModel.mPrice.observe(
-            this, Observer { priceStr ->
+            viewLifecycleOwner, Observer { priceStr ->
                 price_TextView.text = priceStr
             }
         )
 
         tickerViewModel.mPriceSeries.observe(
-            this, Observer{ priceSeries ->
+            viewLifecycleOwner, Observer{ priceSeries ->
                 // update plot
                 Log.d("OB", priceSeries.toString())
-                val priceChart: LineChart = findViewById(R.id.pricePlot)
+                val priceChart: LineChart = rootView.findViewById(R.id.pricePlot)
                 var pricePloter =
                     PricePloter(priceChart)
                 pricePloter.PlotData(priceSeries)
@@ -306,7 +312,7 @@ class TickerExploreActivity : AppCompatActivity() {
     private val qUrl : String = "https://query1.finance.yahoo.com/v8/finance/chart/"
     private val qOpt : String = "?region=US&lang=en-US&includePrePost=false&interval=1m&range=1d&corsDomain=search.yahoo.com"
     private fun checkPriceTriggerInBackGround(symbol : String) {
-        val requestQueue = Volley.newRequestQueue(this)
+        val requestQueue = Volley.newRequestQueue(requireContext())
         val queryStr = qUrl + symbol + qOpt
         val jsonObjectRequest = JsonObjectRequest(
             Request.Method.GET, queryStr, null,
