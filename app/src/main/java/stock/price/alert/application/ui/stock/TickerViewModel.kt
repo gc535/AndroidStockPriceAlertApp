@@ -13,17 +13,15 @@ import java.time.LocalDate
 import java.util.*
 
 class TickerViewModel : ViewModel() {
-    private var curType = "Null"
     private var respMap = HashMap<String, JSONObject>()
     private var priceData = HashMap<String, Vector<Pair<String, Float>>>()
 
-    private var symbol = MutableLiveData<String>()
-    private var name = MutableLiveData<String>()
     private var price = MutableLiveData<String> ()
     private var priceSeries = MutableLiveData<Vector<Pair<String, Float>>>()
 
-    val mSymbol : LiveData<String> get() = symbol
-    val mName : LiveData<String> get() = name
+    var mCurType : String = "Null"
+    var mSymbol : String = "Null"
+    var mName : String = "Null"
     val mPrice : LiveData<String> get() = price
     val mPriceSeries : LiveData<Vector<Pair<String, Float>>> get() = priceSeries
 
@@ -32,14 +30,19 @@ class TickerViewModel : ViewModel() {
         DAY, WEEK, MONTH, MONTH3, YEAR, YEAR5
     }
 
-    fun MaybeRefresh(new_symbol : String, new_name : String) {
-        if (new_symbol != symbol.value) {
-            symbol.postValue(new_symbol)
-            name.postValue(new_name)
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun MaybeRefresh(new_symbol : String, new_name : String, apis : StockDataQueryAPIs) {
+        if (new_symbol != mSymbol) {
+            // clear old ticker data
+            mSymbol = new_symbol
+            mName = new_name
             respMap.clear()
             priceData.clear()
             priceSeries = MutableLiveData()
-            curType = "Null"
+
+            // update with new ticker data
+            UpdatePriceInBackGround("day", apis)
+            mCurType = "day"
         }
     }
 
@@ -72,8 +75,8 @@ class TickerViewModel : ViewModel() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun UpdatePriceInBackGround(type : String, apis : StockDataQueryAPIs) {
-        if (type != curType) {
-            curType = type
+        if (type != mCurType) {
+            mCurType = type
             // if dataset is ready, just update livedata
             if (priceData.containsKey(type)) {
                 priceSeries.postValue(priceData[type])

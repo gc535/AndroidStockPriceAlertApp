@@ -67,7 +67,7 @@ class TickerExploreActivity : AppCompatActivity() {
         )
 
         // setup viewModel to observe price series data
-        tickerViewModel.MaybeRefresh(symbol, name)
+        tickerViewModel.MaybeRefresh(symbol, name, queryAPIs)
         observeViewModel()
 
         // update and load ticker price data in background
@@ -125,16 +125,7 @@ class TickerExploreActivity : AppCompatActivity() {
 
     // define subscription to view model data
     private fun observeViewModel() {
-        tickerViewModel.mSymbol.observe(
-            this, Observer { symbolStr ->
-                symbol_TextView.text = symbolStr
-            }
-        )
-        tickerViewModel.mName.observe(
-            this, Observer { nameStr ->
-                name_TextView.text = nameStr
-            }
-        )
+
         tickerViewModel.mPrice.observe(
             this, Observer { priceStr ->
                 price_TextView.text = priceStr
