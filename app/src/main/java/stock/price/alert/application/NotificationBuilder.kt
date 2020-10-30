@@ -1,15 +1,12 @@
-package stock.price.alert.application.ui.notifications
+package stock.price.alert.application
 
 import android.app.Notification.DEFAULT_ALL
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import androidx.core.app.NotificationManagerCompat
 import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationCompat.DEFAULT_SOUND
-import stock.price.alert.application.R
 
 class NotificationBuilder {
 

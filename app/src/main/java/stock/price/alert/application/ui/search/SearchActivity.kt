@@ -12,7 +12,7 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import kotlinx.android.synthetic.main.fragment_search.*
 import stock.price.alert.application.R
-import stock.price.alert.application.ui.notifications.NotificationBuilder
+import stock.price.alert.application.NotificationBuilder
 import stock.price.alert.application.ui.stock.TickerExploreActivity
 
 
@@ -29,10 +29,12 @@ class SearchActivity : AppCompatActivity() {
         val channel_name  = "Test Notification"
         val channel_id = "test_notification_channel"
         val channel_desc = "Test Notificatio Channel"
-        NotificationBuilder().CreateNotificationChannel(this@SearchActivity, channel_name, channel_id, channel_desc)
+        NotificationBuilder()
+            .CreateNotificationChannel(this@SearchActivity, channel_name, channel_id, channel_desc)
 
         val notification_id = "test_notification"
-        val builder = NotificationBuilder().CreateNotification(this, channel_id)
+        val builder = NotificationBuilder()
+            .CreateNotification(this, channel_id)
 
 
         with(NotificationManagerCompat.from(this)) {

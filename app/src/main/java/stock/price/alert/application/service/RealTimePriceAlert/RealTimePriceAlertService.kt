@@ -5,7 +5,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import android.widget.Toast
 import androidx.core.app.JobIntentService
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -16,7 +15,7 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import kotlinx.coroutines.*
 import org.json.JSONObject
-import stock.price.alert.application.ui.notifications.NotificationBuilder
+import stock.price.alert.application.NotificationBuilder
 import stock.price.alert.application.ui.stock.TickerExploreActivity
 
 class RealTimePriceAlertService  : JobIntentService() {

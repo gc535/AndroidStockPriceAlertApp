@@ -1,36 +1,25 @@
 package stock.price.alert.application.ui.search
 
-import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
-import androidx.core.app.NotificationManagerCompat
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
-import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-import kotlinx.android.synthetic.main.fragment_search.*
 import stock.price.alert.application.MainViewModel
 import stock.price.alert.application.R
-import stock.price.alert.application.ui.notifications.NotificationBuilder
-import stock.price.alert.application.ui.stock.TickerExploreActivity
-import stock.price.alert.application.ui.stock.TickerExploreFragmentArgs
 
 
 class SearchFragment : Fragment() {
-    private lateinit var searchAdaptor : ArrayAdapter<*>
+    private lateinit var searchAdapter : ArrayAdapter<*>
     private lateinit var rootView : View
     private lateinit var mainViewModel : MainViewModel
     private val homeArgs : SearchFragmentArgs by navArgs()
@@ -71,7 +60,7 @@ class SearchFragment : Fragment() {
 
         result_listview.adapter =
             ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, ArrayList<String>())
-        result_listview.emptyView = empty_textView
+        result_listview.emptyView = rootView.findViewById(R.id.empty_textView)
         result_listview.divider = null
         result_listview.dividerHeight = 0
 
@@ -89,12 +78,6 @@ class SearchFragment : Fragment() {
                         .actionNavigationTickerSearchToTickerExploreFragment(ticker_name, ticker_symbol)
                     findNavController().navigate(goto_ticker_explorer_action)
 
-                    //val intent =
-                    //    Intent(Intent(this@SearchFragment, TickerExploreActivity::class.java))
-                    //intent.putExtra("name", ticket_symbol.split(" : ")[0])
-                    //intent.putExtra("symbol", ticket_symbol.split(" : ")[1])
-                    //startActivity(intent)
-                    // replace above logic with navigation
                 }
             }
     }
@@ -118,12 +101,13 @@ class SearchFragment : Fragment() {
                         .ProbTicker(newText), null,
                     Response.Listener { response->
                         // populate search array
-                        searchAdaptor = ArrayAdapter(
+                        searchAdapter = ArrayAdapter(
                             requireContext(),
-                            android.R.layout.simple_list_item_1, QueryAPI()
-                                .ParseProbResponse(response))
+                            android.R.layout.simple_list_item_1,
+                            QueryAPI().ParseProbResponse(response)
+                        )
                         val result_listview : ListView= rootView.findViewById(R.id.result_listview)
-                        result_listview.adapter = searchAdaptor
+                        result_listview.adapter = searchAdapter
                     },
                     Response.ErrorListener { error ->
                         // TODO: Handle error
