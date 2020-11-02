@@ -1,9 +1,20 @@
 <resources>
     <string name="app_name">My Application</string>
+    <string name="app_version">0.0.1</string>
     <string name="title_home">Home</string>
     <string name="title_ticker_search">Ticker</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="title_settings">Settings</string>
     <string name="title_notifications">Notifications</string>
     <string name="title_ticker_explorer">TickerExplorer</string>
+
+    <!-- setting -->
+    <string name="setting_price_check_alert">PricecCheckAlert</string>
+    <string name="setting_price_check_interval">PricecCheckInterval</string>
+        <string name="setting_price_check_interval_1min">1 Min</string>
+        <string name="setting_price_check_interval_5min">5 Mins</string>
+        <string name="setting_price_check_interval_15min">15 Mins</string>
+        <string name="setting_price_check_interval_30min">30 Mins</string>
+        <string name="setting_price_check_interval_60min">60 Mins</string>
+
 </resources>

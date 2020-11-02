@@ -1,14 +1,17 @@
 package stock.price.alert.application.service.RealTimePriceAlert
 
+import android.app.AlarmManager
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.JobIntentService
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.TaskStackBuilder
+import androidx.core.content.ContextCompat.getSystemService
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
@@ -28,6 +31,39 @@ class RealTimePriceAlertService  : JobIntentService() {
 
         fun enqueueWork(context: Context, intent: Intent) {
             enqueueWork(context, RealTimePriceAlertService::class.java, REALTIME_PRICE_JOB_ID, intent)
+        }
+
+        fun SetServiceAlarm(context : Context, interval : Int) {
+            val broadcastIntent = createBoardcastIntent(context)
+            var pendingIntent = PendingIntent.getBroadcast(
+                context, 0, broadcastIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+
+            // set repeat clock interval (mins)
+            val interval : Int = interval * 60 * 1000
+            val alarmMgr = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmMgr.setRepeating(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + interval,
+                interval.toLong(),
+                pendingIntent
+            )
+        }
+
+        fun UnsetServiceAlarm(context: Context) {
+            val broadcastIntent = createBoardcastIntent(context)
+            val pendingIntent = PendingIntent.getBroadcast(
+                context, 0, broadcastIntent, PendingIntent.FLAG_NO_CREATE)
+
+            if (pendingIntent != null) {
+                val alarmMgr = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                alarmMgr.cancel(pendingIntent)
+            }
+        }
+
+        private fun createBoardcastIntent(context : Context) : Intent {
+            return  Intent(Intent(context, RealTimePriceAlertAlarmReceiver::class.java)).apply {
+                        action = "android.intent.action.SET_REALTIME_PRICE_CHECK_ALARM"
+                    }
         }
     }
 

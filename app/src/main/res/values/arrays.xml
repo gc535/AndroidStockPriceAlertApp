@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Label ordering must match values -->
+    <string-array name="settings_price_check_interval_labels">
+        <item>@string/setting_price_check_interval_1min</item>
+        <item>@string/setting_price_check_interval_5min</item>
+        <item>@string/setting_price_check_interval_15min</item>
+        <item>@string/setting_price_check_interval_30min</item>
+        <item>@string/setting_price_check_interval_60min</item>
+    </string-array>
+
+    <string-array name="settings_price_check_interval_values">
+        <item>1 min</item>
+        <item>5 mins</item>
+        <item>15 mins</item>
+        <item>30 mins</item>
+        <item>60 mins</item>
+    </string-array>
+</resources>

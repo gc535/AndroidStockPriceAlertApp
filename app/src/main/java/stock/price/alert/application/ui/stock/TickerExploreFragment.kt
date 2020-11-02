@@ -98,24 +98,23 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
                 checkPriceTriggerInBackGround("KO")
 
                 // test create price check alarm
-
-                val alarmMgr = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
-                val broadcastIntent =
-                    Intent(Intent(requireContext(),
-                        RealTimePriceAlertAlarmReceiver::class.java)).apply {
-                        action = "android.intent.action.SET_REALTIME_PRICE_CHECK_ALARM"
-                    }
-                var pendingIntent = PendingIntent.getBroadcast(
-                    requireContext(), 0, broadcastIntent, PendingIntent.FLAG_UPDATE_CURRENT)
-
-                // set repeat clock every 5 sec
-                val interval : Long = 5* 1000
-                alarmMgr.setRepeating(
-                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                    SystemClock.elapsedRealtime() + interval,
-                    interval,
-                    pendingIntent
-                )
+                //val alarmMgr = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                //val broadcastIntent =
+                //    Intent(Intent(requireContext(),
+                //        RealTimePriceAlertAlarmReceiver::class.java)).apply {
+                //        action = "android.intent.action.SET_REALTIME_PRICE_CHECK_ALARM"
+                //    }
+                //var pendingIntent = PendingIntent.getBroadcast(
+                //    requireContext(), 0, broadcastIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+                //
+                //// set repeat clock every 5 sec
+                //val interval : Long = 5* 1000
+                //alarmMgr.setRepeating(
+                //    AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                //    SystemClock.elapsedRealtime() + interval,
+                //    interval,
+                //    pendingIntent
+                //)
 
                 // display set price alert dialog
                 var setAlertDialog = SetAlertDialogFragment()
