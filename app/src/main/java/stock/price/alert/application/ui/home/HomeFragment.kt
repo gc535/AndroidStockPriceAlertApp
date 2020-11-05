@@ -49,8 +49,9 @@ class HomeFragment : Fragment() {
     private fun initWatchListView() {
         val wathlist_listview : ListView = rootView.findViewById(R.id.wathlist_listview)
 
+        val test_list : ArrayList<String> = arrayListOf("CocaCola : KO : 40 : 55 : 56", "Global Jets : JETS : 14 : 17 : 1", "Amazon : AMZN : 2900 : 3300 : 2800")
         wathlist_listview.adapter =
-            ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, ArrayList<String>())
+            WatchListViewAdapter(requireContext(), test_list)
         wathlist_listview.emptyView = rootView.findViewById(R.id.empty_watchlist_textview)
         wathlist_listview.dividerHeight = 2
 
