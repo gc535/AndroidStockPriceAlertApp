@@ -4,32 +4,39 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.BaseAdapter
 import androidx.core.content.res.ColorStateListInflaterCompat.inflate
 import androidx.core.content.res.ComplexColorCompat.inflate
 import kotlinx.android.synthetic.main.listview_layout_watchlist.view.*
 import stock.price.alert.application.R
 
-class WatchListViewAdapter(private val mContext : Context, private val mDataArray : ArrayList<String>) :  BaseAdapter() {
+class WatchListViewAdapter(private val mContext : Context, private val mDataArray : ArrayList<WatchListEntry>)
+    : ArrayAdapter<WatchListEntry>(mContext, R.layout.listview_layout_watchlist, mDataArray) {
     private val inflater = mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
 
     override fun getView(pos: Int, view: View?, parent: ViewGroup): View {
+        val uninitStr = "--"
         val rowView : View = inflater.inflate(R.layout.listview_layout_watchlist, parent, false)
-        val fields = mDataArray[pos].split(" : ")
-        rowView.symbol.text = fields[1]
-        rowView.lowerbound.text = fields[2]
-        rowView.upperbound.text = fields[3]
-        rowView.price.text = fields[4]
+        rowView.symbol.text = mDataArray[pos].getSymbol()
+        rowView.lowerbound.text =
+            if (mDataArray[pos].getLowerBound() != null) mDataArray[pos].getLowerBound().toString() else uninitStr
+        rowView.upperbound.text =
+            if (mDataArray[pos].getUpperBound() != null) mDataArray[pos].getUpperBound().toString() else uninitStr
+        rowView.price.text =
+            if (mDataArray[pos].getPrice() != null) mDataArray[pos].getPrice().toString() else uninitStr
 
         // set indicator images for lower bound
-        if (fields[4].toFloat() < fields[2].toFloat()) {
+        if ((mDataArray[pos].getPrice() != null && mDataArray[pos].getLowerBound() != null)
+            && mDataArray[pos].getPrice()!! < mDataArray[pos].getLowerBound()!!) {
             rowView.lower_indicator.setImageResource(R.drawable.ic_home_watchlist_down_24)
         } else {
             rowView.lower_indicator.setImageResource(R.drawable.ic_home_watchlist_wait_24)
         }
 
         // set indicator images for upper bound
-        if (fields[4].toFloat() > fields[3].toFloat()) {
+        if ((mDataArray[pos].getPrice() != null && mDataArray[pos].getUpperBound() != null)
+            && mDataArray[pos].getPrice()!! > mDataArray[pos].getUpperBound()!!) {
             rowView.upper_indicator.setImageResource(R.drawable.ic_home_watchlist_up_24)
         } else {
             rowView.upper_indicator.setImageResource(R.drawable.ic_home_watchlist_wait_24)
@@ -42,11 +49,27 @@ class WatchListViewAdapter(private val mContext : Context, private val mDataArra
         return mDataArray.size
     }
 
-    override fun getItem(position: Int): Any {
+    override fun getItem(position: Int): WatchListEntry? {
         return mDataArray[position]
     }
 
     override fun getItemId(pos: Int): Long {
         return pos.toLong()
     }
+
+    override fun notifyDataSetChanged() {
+        super.notifyDataSetChanged()
+    }
+}
+
+class WatchListEntry(val mSymbol: String, val mTicker: String, val mLowerBound: Float?, val mUpperBound: Float?) {
+    var mPrice : Float? = null
+
+    fun setPrice(price: Float) { mPrice = price }
+
+    fun getSymbol(): String { return mSymbol}
+    fun getName(): String { return mTicker }
+    fun getLowerBound(): Float? { return mLowerBound }
+    fun getUpperBound(): Float? { return mUpperBound }
+    fun getPrice(): Float? { return mPrice }
 }

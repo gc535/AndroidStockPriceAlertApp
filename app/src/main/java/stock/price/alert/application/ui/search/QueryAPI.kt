@@ -58,7 +58,11 @@ class QueryAPI {
 
     /* functions for fetching real time price */
     // TODO: Add callback routine as argument, and test callback with watch button in ticker explorer
-    private fun checkPriceTriggerInBackGround(context : Context, scope : CoroutineScope, symbol : String) {
+    fun CheckPriceTriggerInBackGround(context : Context,
+                                      scope : CoroutineScope,
+                                      symbol : String,
+                                      CallBackOnResponse : (String, Float) -> Unit,
+                                      CallBackOnError: (String?) -> Unit) {
         val requestQueue = Volley.newRequestQueue(context)
         val queryStr = realtimePirceQueryUrl + symbol + realtimePirceQueryOpt
         val jsonObjectRequest = JsonObjectRequest(
@@ -68,11 +72,12 @@ class QueryAPI {
                 scope.launch {
                     parseResponse(response)?.let { price ->
                         Log.d("PRICECHECK", price.toString())
+                        CallBackOnResponse(symbol, price)
                     } // null check
                 } // coroutine scope
             },
             Response.ErrorListener { error ->
-                // TODO: Handle error
+                CallBackOnError(symbol)
             }
         )
 

@@ -1,16 +1,19 @@
 package stock.price.alert.application.ui.home
 
 import android.os.Bundle
+import android.util.Log
 import android.view.*
 import android.widget.*
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.fragment.findNavController
+import com.github.mikephil.charting.charts.LineChart
 import kotlinx.android.synthetic.main.fragment_search.*
 import stock.price.alert.application.MainViewModel
 import stock.price.alert.application.R
 import stock.price.alert.application.ui.search.SearchFragmentDirections
+import stock.price.alert.application.ui.stock.PricePloter
 
 class HomeFragment : Fragment() {
 
@@ -18,6 +21,8 @@ class HomeFragment : Fragment() {
     private lateinit var mainViewModel : MainViewModel
 
     private lateinit var rootView : View
+    private lateinit var watchlistView : ListView
+
 
     override fun onCreateView(
             inflater: LayoutInflater,
@@ -25,6 +30,7 @@ class HomeFragment : Fragment() {
             savedInstanceState: Bundle?
     ): View? {
         homeViewModel = ViewModelProviders.of(this).get(HomeViewModel::class.java)
+        homeViewModel.Init()
         mainViewModel = ViewModelProviders.of(requireActivity()).get(MainViewModel::class.java)
 
         rootView = inflater.inflate(R.layout.fragment_home, container, false)
@@ -47,27 +53,33 @@ class HomeFragment : Fragment() {
 
 
     private fun initWatchListView() {
-        val wathlist_listview : ListView = rootView.findViewById(R.id.wathlist_listview)
+        watchlistView = rootView.findViewById(R.id.wathlist_listview)
+        watchlistView.adapter =
+            WatchListViewAdapter(requireContext(), homeViewModel.mTickersWatchListLiveData.value!!)
+        watchlistView.emptyView = rootView.findViewById(R.id.empty_watchlist_textview)
+        watchlistView.dividerHeight = 2
 
-        val test_list : ArrayList<String> = arrayListOf("CocaCola : KO : 40 : 55 : 56", "Global Jets : JETS : 14 : 17 : 1", "Amazon : AMZN : 2900 : 3300 : 2800")
-        wathlist_listview.adapter =
-            WatchListViewAdapter(requireContext(), test_list)
-        wathlist_listview.emptyView = rootView.findViewById(R.id.empty_watchlist_textview)
-        wathlist_listview.dividerHeight = 2
-
-        wathlist_listview.onItemClickListener =
+        watchlistView.onItemClickListener =
             AdapterView.OnItemClickListener { parent, view, position, id ->
-                val ticket_symbol = parent?.getItemAtPosition(position) as String
-                ticket_symbol.let{
-                    val ticker_name = ticket_symbol.split(" : ")[0]
-                    val ticker_symbol = ticket_symbol.split(" : ")[1]
-                    mainViewModel.ChangeTicker(ticker_name, ticker_symbol)
-                    mainViewModel.mHasHistory = true
+                val watchlistEntry = parent?.getItemAtPosition(position) as WatchListEntry
+                watchlistEntry.let{
+                    Toast.makeText(requireContext(), "selected ticker is: ${watchlistEntry.getName()} : ${watchlistEntry.getSymbol()}", Toast.LENGTH_SHORT).show()
 
                     // navigate with args to ticker explorer fragment
-
                 }
             }
+
+        // subscribe ui update to livedata
+        homeViewModel.mTickersWatchListLiveData.observe(
+            viewLifecycleOwner, Observer { tickersWatchList ->
+                (watchlistView.adapter as WatchListViewAdapter).notifyDataSetChanged()
+                // update plot
+                Log.d("OB", tickersWatchList.toString())
+            }
+        )
+
+        homeViewModel.StartBackgroundUpdate(requireContext())
     }
+
 
 }

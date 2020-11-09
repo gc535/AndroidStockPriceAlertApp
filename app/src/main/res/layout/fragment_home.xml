@@ -8,9 +8,9 @@
 
     <Button
         android:id="@+id/goToSearchActivity"
-        android:layout_width="340dp"
+        android:layout_width="360dp"
         android:layout_height="40dp"
-        android:layout_marginStart="40dp"
+        android:layout_marginStart="30dp"
         android:layout_marginTop="40dp"
         android:layout_marginEnd="40dp"
         android:background="#FFFFFF"
@@ -28,9 +28,9 @@
         android:id="@+id/text_watchlist"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
+        android:layout_marginStart="20dp"
         android:layout_marginTop="20dp"
-        android:paddingEnd="10dp"
+        android:paddingEnd="20dp"
         android:text="WatchList"
         android:textAlignment="textStart"
         android:textSize="22sp"
@@ -39,11 +39,11 @@
 
     <ListView
         android:id="@+id/wathlist_listview"
-        android:layout_width="340dp"
+        android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_below="@+id/text_watchlist"
         android:layout_alignLeft="@id/text_watchlist"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="0dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp" />
