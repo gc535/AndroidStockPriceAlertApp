@@ -20,11 +20,11 @@ class WatchListViewAdapter(private val mContext : Context, private val mDataArra
         val rowView : View = inflater.inflate(R.layout.listview_layout_watchlist, parent, false)
         rowView.symbol.text = mDataArray[pos].getSymbol()
         rowView.lowerbound.text =
-            if (mDataArray[pos].getLowerBound() != null) mDataArray[pos].getLowerBound().toString() else uninitStr
+            if (mDataArray[pos].getLowerBound() != null) "%.2f".format(mDataArray[pos].getLowerBound()) else uninitStr
         rowView.upperbound.text =
-            if (mDataArray[pos].getUpperBound() != null) mDataArray[pos].getUpperBound().toString() else uninitStr
+            if (mDataArray[pos].getUpperBound() != null) "%.2f".format(mDataArray[pos].getUpperBound()) else uninitStr
         rowView.price.text =
-            if (mDataArray[pos].getPrice() != null) mDataArray[pos].getPrice().toString() else uninitStr
+            if (mDataArray[pos].getPrice() != null) "%.2f".format(mDataArray[pos].getPrice()) else uninitStr
 
         // set indicator images for lower bound
         if ((mDataArray[pos].getPrice() != null && mDataArray[pos].getLowerBound() != null)

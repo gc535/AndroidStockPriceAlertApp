@@ -29,16 +29,19 @@ class HomeFragment : Fragment() {
             container: ViewGroup?,
             savedInstanceState: Bundle?
     ): View? {
-        homeViewModel = ViewModelProviders.of(this).get(HomeViewModel::class.java)
-        homeViewModel.Init()
         mainViewModel = ViewModelProviders.of(requireActivity()).get(MainViewModel::class.java)
+        homeViewModel = ViewModelProviders.of(this).get(HomeViewModel::class.java)
+
 
         rootView = inflater.inflate(R.layout.fragment_home, container, false)
+        initWatchListView()
         return rootView
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        homeViewModel = ViewModelProviders.of(this).get(HomeViewModel::class.java)
 
         val searchButton: Button = rootView.findViewById(R.id.goToSearchActivity)
         searchButton.setOnClickListener {
@@ -47,10 +50,9 @@ class HomeFragment : Fragment() {
             findNavController().navigate(goto_search_action)
         }
 
-        initWatchListView()
+
 
     }
-
 
     private fun initWatchListView() {
         watchlistView = rootView.findViewById(R.id.wathlist_listview)
@@ -81,5 +83,9 @@ class HomeFragment : Fragment() {
         homeViewModel.StartBackgroundUpdate(requireContext())
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        homeViewModel.Clear()
+    }
 
 }

@@ -6,6 +6,9 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.android.volley.RequestQueue
+import com.android.volley.toolbox.Volley
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import stock.price.alert.application.ui.search.QueryAPI
@@ -13,7 +16,7 @@ import kotlin.random.Random
 
 class HomeViewModel : ViewModel() {
 
-
+    private var isInited : Boolean = false
     private var watchedTickers : ArrayList<String> = arrayListOf("KO", "JETS", "AMZN")
     private var queuedPriceQuery = mutableSetOf<String>()
     private var tickersWatchList = ArrayList<WatchListEntry>()
@@ -21,19 +24,25 @@ class HomeViewModel : ViewModel() {
     private var tickersWatchListLiveData = MutableLiveData<ArrayList<WatchListEntry>>()
     val mTickersWatchListLiveData : LiveData<ArrayList<WatchListEntry>> get() = tickersWatchListLiveData
 
-    fun Init() {
+    init {
         loadWatchList()
         tickersWatchListLiveData = MutableLiveData(tickersWatchList)
+
+        // add price update job for all watched tickers
+        tickersWatchList.forEach {
+            queuedPriceQuery.add(it.getSymbol())
+        }
     }
 
 
     fun StartBackgroundUpdate(context: Context) {
         viewModelScope.launch {
+            val requestQueue = Volley.newRequestQueue(context)
             while (true) {
                 tickersWatchList.forEachIndexed { index, watchListEntry ->
                     val symbol: String = watchListEntry.getSymbol()
                     if (queuedPriceQuery.contains(symbol)) {
-                        checkPriceInBackground(context, symbol, index)
+                        checkPriceInBackground(requestQueue, symbol, index)
                         queuedPriceQuery.remove(symbol)
                     }
                 }
@@ -43,9 +52,10 @@ class HomeViewModel : ViewModel() {
         }
     }
 
-    private fun checkPriceInBackground(context: Context, symbol : String, index: Int) {
+    private fun checkPriceInBackground(volleyRequestQueue: RequestQueue, symbol : String, index: Int) {
         if (tickersWatchList[index].getSymbol() == symbol) {
-            QueryAPI().CheckPriceTriggerInBackGround(context, viewModelScope, symbol,
+            Log.d("HOMEVW", "Start checking $symbol")
+            QueryAPI().CheckPriceTriggerInBackGround(volleyRequestQueue, viewModelScope, symbol,
                 { symbol: String, price: Float ->
                     val priceStr = price.toString()
                     Log.d("HOMEVW", "got $symbol price: $priceStr")
@@ -67,9 +77,17 @@ class HomeViewModel : ViewModel() {
     }
 
     private fun loadWatchList() {
-        tickersWatchList.add(WatchListEntry("KO", "CocaCola", null, 55.5.toFloat()))
-        tickersWatchList.add(WatchListEntry("AMZN", "Amazon", 2900.toFloat(), 3300.toFloat()))
-        tickersWatchList.add(WatchListEntry("JETS", "Global Jets", 14.toFloat(), 17.toFloat()))
+        viewModelScope.launch {
+            tickersWatchList.add(WatchListEntry("KO", "CocaCola", null, 55.5.toFloat()))
+            tickersWatchList.add(WatchListEntry("AMZN", "Amazon", 2900.toFloat(), 3300.toFloat()))
+            tickersWatchList.add(WatchListEntry("JETS", "Global Jets", 14.toFloat(), 17.toFloat()))
+        }
+    }
+
+    fun Clear() = onCleared()
+    override fun onCleared() {
+        viewModelScope.cancel()
+        Log.d("HOMEVW", "ViewModel cleared successfull")
     }
 
 }

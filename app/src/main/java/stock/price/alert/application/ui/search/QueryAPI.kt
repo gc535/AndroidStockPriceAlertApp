@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.annotation.RestrictTo
 import com.android.volley.Request
+import com.android.volley.RequestQueue
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
@@ -58,12 +59,11 @@ class QueryAPI {
 
     /* functions for fetching real time price */
     // TODO: Add callback routine as argument, and test callback with watch button in ticker explorer
-    fun CheckPriceTriggerInBackGround(context : Context,
+    fun CheckPriceTriggerInBackGround(volleyRequestQueue: RequestQueue,
                                       scope : CoroutineScope,
                                       symbol : String,
                                       CallBackOnResponse : (String, Float) -> Unit,
                                       CallBackOnError: (String?) -> Unit) {
-        val requestQueue = Volley.newRequestQueue(context)
         val queryStr = realtimePirceQueryUrl + symbol + realtimePirceQueryOpt
         val jsonObjectRequest = JsonObjectRequest(
             Request.Method.GET, queryStr, null,
@@ -76,13 +76,13 @@ class QueryAPI {
                     } // null check
                 } // coroutine scope
             },
-            Response.ErrorListener { error ->
+            Response.ErrorListener {
                 CallBackOnError(symbol)
             }
         )
 
         // Access the RequestQueue through your singleton class.
-        requestQueue.add(jsonObjectRequest)
+        volleyRequestQueue.add(jsonObjectRequest)
     }
 
     // parse latest price from response
