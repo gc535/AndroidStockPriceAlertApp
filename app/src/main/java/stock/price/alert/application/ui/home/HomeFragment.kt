@@ -50,9 +50,8 @@ class HomeFragment : Fragment() {
             findNavController().navigate(goto_search_action)
         }
 
-
-
     }
+
 
     private fun initWatchListView() {
         watchlistView = rootView.findViewById(R.id.wathlist_listview)
@@ -65,9 +64,16 @@ class HomeFragment : Fragment() {
             AdapterView.OnItemClickListener { parent, view, position, id ->
                 val watchlistEntry = parent?.getItemAtPosition(position) as WatchListEntry
                 watchlistEntry.let{
-                    Toast.makeText(requireContext(), "selected ticker is: ${watchlistEntry.getName()} : ${watchlistEntry.getSymbol()}", Toast.LENGTH_SHORT).show()
+                    val ticker_name = watchlistEntry.getName()
+                    val ticker_symbol = watchlistEntry.getSymbol()
+                    mainViewModel.ChangeTicker(ticker_name, ticker_symbol)
+                    mainViewModel.mHasHistory = true
+                    Toast.makeText(requireContext(), "selected ticker is: $ticker_name : $ticker_symbol", Toast.LENGTH_SHORT).show()
 
                     // navigate with args to ticker explorer fragment
+                    val goto_ticker_explorer_action = HomeFragmentDirections
+                        .actionNavigationHomeToNavigationTickerExplorer(ticker_name, ticker_symbol)
+                    findNavController().navigate(goto_ticker_explorer_action)
                 }
             }
 

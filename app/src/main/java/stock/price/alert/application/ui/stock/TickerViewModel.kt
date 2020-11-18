@@ -39,6 +39,7 @@ class TickerViewModel : ViewModel() {
             respMap.clear()
             priceData.clear()
             priceSeries = MutableLiveData()
+            price.postValue(" ")
 
             // update with new ticker data
             UpdatePriceInBackGround("day", apis)

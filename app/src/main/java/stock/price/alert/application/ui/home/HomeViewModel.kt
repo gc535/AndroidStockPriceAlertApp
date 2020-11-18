@@ -1,23 +1,22 @@
 package stock.price.alert.application.ui.home
 
+import android.app.Application
 import android.content.Context
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
+import com.github.mikephil.charting.utils.Utils.init
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import stock.price.alert.application.Data.WatchListDBHandler
 import stock.price.alert.application.ui.search.QueryAPI
 import kotlin.random.Random
 
-class HomeViewModel : ViewModel() {
+class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private var isInited : Boolean = false
-    private var watchedTickers : ArrayList<String> = arrayListOf("KO", "JETS", "AMZN")
     private var queuedPriceQuery = mutableSetOf<String>()
     private var tickersWatchList = ArrayList<WatchListEntry>()
 
@@ -52,6 +51,7 @@ class HomeViewModel : ViewModel() {
         }
     }
 
+
     private fun checkPriceInBackground(volleyRequestQueue: RequestQueue, symbol : String, index: Int) {
         if (tickersWatchList[index].getSymbol() == symbol) {
             Log.d("HOMEVW", "Start checking $symbol")
@@ -72,17 +72,27 @@ class HomeViewModel : ViewModel() {
             )
 
         }
-
-
     }
+
 
     private fun loadWatchList() {
         viewModelScope.launch {
-            tickersWatchList.add(WatchListEntry("KO", "CocaCola", null, 55.5.toFloat()))
-            tickersWatchList.add(WatchListEntry("AMZN", "Amazon", 2900.toFloat(), 3300.toFloat()))
-            tickersWatchList.add(WatchListEntry("JETS", "Global Jets", 14.toFloat(), 17.toFloat()))
+            //tickersWatchList.add(WatchListEntry("KO", "CocaCola", null, 55.5.toFloat()))
+            //tickersWatchList.add(WatchListEntry("AMZN", "Amazon", 2900.toFloat(), 3300.toFloat()))
+            //tickersWatchList.add(WatchListEntry("JETS", "Global Jets", 14.toFloat(), 17.toFloat()))
+
+            val context = getApplication<Application>().applicationContext
+            val watchListDBHandler = WatchListDBHandler(context)
+            for ((symbol, value) in watchListDBHandler.GetAllSymbol()) {
+                tickersWatchList.add(WatchListEntry(
+                    symbol,
+                    watchListDBHandler.GetTickerName(symbol)!!,
+                    watchListDBHandler.GetLowerBound(symbol),
+                    watchListDBHandler.GetUpperBound(symbol)))
+            }
         }
     }
+
 
     fun Clear() = onCleared()
     override fun onCleared() {

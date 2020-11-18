@@ -1,44 +1,34 @@
 package stock.price.alert.application.ui.stock
 
-import android.app.AlarmManager
-import android.app.PendingIntent
-import android.content.Context
-import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.os.SystemClock
 import android.util.Log
-import android.view.*
+import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
-import androidx.navigation.findNavController
-import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.setupActionBarWithNavController
-import androidx.navigation.ui.setupWithNavController
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.github.mikephil.charting.charts.LineChart
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import kotlinx.android.synthetic.main.fragment_ticker_explore.*
 import kotlinx.coroutines.*
 import org.json.JSONObject
+import stock.price.alert.application.Data.WatchListDBHandler
 import stock.price.alert.application.MainViewModel
 import stock.price.alert.application.R
-import stock.price.alert.application.service.RealTimePriceAlert.RealTimePriceAlertAlarmReceiver
-import stock.price.alert.application.ui.home.HomeViewModel
+import java.util.*
 
 
 class TickerExploreFragment : Fragment(), View.OnTouchListener {
-    @RequiresApi(Build.VERSION_CODES.O)
+    private lateinit var watchListDBHandler : WatchListDBHandler
     private lateinit var queryAPIs: StockDataQueryAPIs
     private lateinit var symbol : String
     private lateinit var name : String
@@ -63,6 +53,7 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
         mainViewModel = ViewModelProviders.of(requireActivity()).get(MainViewModel::class.java)
         rootView = inflater.inflate(R.layout.fragment_ticker_explore, container, false)
 
+        watchListDBHandler = WatchListDBHandler(requireActivity())
         val name : String = mainViewModel.mCur_ticker_name.value.toString()
         val symbol : String = mainViewModel.mCur_ticker_symbol.value.toString()
         Log.d("hist", "$name, $symbol")
@@ -85,7 +76,7 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
 
             // setup viewModel to observe price series data
             tickerViewModel.MaybeRefresh(symbol, name, queryAPIs)
-            observeViewModel()
+            reObserveViewModel()
 
             // init buttons
             initPriceButtons()
@@ -95,55 +86,49 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
         // test watch button
         watch_Button.setOnClickListener(object : View.OnClickListener {
             override fun onClick(view: View) {
-                checkPriceTriggerInBackGround("KO")
+                var setAlertDialog = SetAlertDialogFragment()
 
-                // test create price check alarm
-                //val alarmMgr = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
-                //val broadcastIntent =
-                //    Intent(Intent(requireContext(),
-                //        RealTimePriceAlertAlarmReceiver::class.java)).apply {
-                //        action = "android.intent.action.SET_REALTIME_PRICE_CHECK_ALARM"
-                //    }
-                //var pendingIntent = PendingIntent.getBroadcast(
-                //    requireContext(), 0, broadcastIntent, PendingIntent.FLAG_UPDATE_CURRENT)
-                //
-                //// set repeat clock every 5 sec
-                //val interval : Long = 5* 1000
-                //alarmMgr.setRepeating(
-                //    AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                //    SystemClock.elapsedRealtime() + interval,
-                //    interval,
-                //    pendingIntent
-                //)
+                // prepare args to be passed to DialogFragment
+                val bundleArgs = Bundle()
+                bundleArgs.putString("symbol", symbol)
+                bundleArgs.putString("name", name)
+                watchListDBHandler.GetUpperBound(symbol)?.let { ub_val ->
+                    bundleArgs.putFloat("upper_bound", ub_val)
+                }
+                watchListDBHandler.GetLowerBound(symbol)?.let { lb_val ->
+                    bundleArgs.putFloat("lower_bound", lb_val)
+                }
 
                 // display set price alert dialog
-                var setAlertDialog = SetAlertDialogFragment()
+                setAlertDialog.setArguments(bundleArgs)
                 setAlertDialog.show(childFragmentManager, "setAlertDialog")
-
             }
         })
     }
 
-    // define subscription to view model data
-    private fun observeViewModel() {
+
+    // Define MVVW observe behaviour
+    private val priceObserver = Observer<String> { priceStr ->
+        price_TextView.text = priceStr
+    }
+    private val priceSeriesObserver = Observer<Vector<Pair<String, Float>>> { priceSeries ->
+        // update plot
+        Log.d("OB", priceSeries.toString())
+        val priceChart: LineChart = rootView.findViewById(R.id.pricePlot)
+        var pricePloter = PricePloter(priceChart)
+        pricePloter.PlotData(priceSeries)
+    }
+    // define subscription to view model data {  }
+    private fun reObserveViewModel() {
         symbol_TextView.text = tickerViewModel.mSymbol
         name_TextView.text = tickerViewModel.mName
 
-        tickerViewModel.mPrice.observe(
-            viewLifecycleOwner, Observer { priceStr ->
-                price_TextView.text = priceStr
-            }
-        )
+        tickerViewModel.mPrice.removeObserver(priceObserver)
+        tickerViewModel.mPrice.observe(viewLifecycleOwner, priceObserver)
 
-        tickerViewModel.mPriceSeries.observe(
-            viewLifecycleOwner, Observer{ priceSeries ->
-                // update plot
-                Log.d("OB", priceSeries.toString())
-                val priceChart: LineChart = rootView.findViewById(R.id.pricePlot)
-                var pricePloter = PricePloter(priceChart)
-                pricePloter.PlotData(priceSeries)
-            }
-        )
+        tickerViewModel.mPriceSeries.removeObserver(priceSeriesObserver)
+        tickerViewModel.mPriceSeries.observe(viewLifecycleOwner, priceSeriesObserver)
+
     }
 
     /////////////////////// button related ///////////////////////

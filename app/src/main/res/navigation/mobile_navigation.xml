@@ -13,6 +13,9 @@
         <action
             android:id="@+id/action_navigation_home_to_navigation_ticker_search"
             app:destination="@id/navigation_ticker_search" />
+        <action
+            android:id="@+id/action_navigation_home_to_navigation_ticker_explorer"
+            app:destination="@id/navigation_ticker_explorer" />
     </fragment>
 
 

@@ -56,7 +56,7 @@
                     android:textSize="18sp" />
 
                 <EditText
-                    android:id="@+id/editTextNumberDecimal"
+                    android:id="@+id/editUpperBoundText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:ems="4"
@@ -81,7 +81,7 @@
                     android:textSize="18sp" />
 
                 <EditText
-                    android:id="@+id/editTextNumberDecimal2"
+                    android:id="@+id/editLowerBoundText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:ems="4"
@@ -91,7 +91,7 @@
             </LinearLayout>
 
             <Button
-                android:id="@+id/button"
+                android:id="@+id/setButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"

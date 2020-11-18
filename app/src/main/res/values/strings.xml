@@ -17,4 +17,8 @@
         <string name="setting_price_check_interval_30min">30 Mins</string>
         <string name="setting_price_check_interval_60min">60 Mins</string>
 
+
+    <!-- File and Data -->
+    <string name="watchlist_database_name">WatchListDatabase</string>
+
 </resources>
