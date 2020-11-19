@@ -5,6 +5,7 @@ import android.app.Notification
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.JobIntentService
@@ -12,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.TaskStackBuilder
 import androidx.core.content.ContextCompat.getSystemService
+import androidx.navigation.NavDeepLinkBuilder
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
@@ -19,6 +21,7 @@ import com.android.volley.toolbox.Volley
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import stock.price.alert.application.NotificationBuilder
+import stock.price.alert.application.R
 import stock.price.alert.application.ui.stock.TickerExploreActivity
 
 class RealTimePriceAlertService  : JobIntentService() {
@@ -205,18 +208,29 @@ class RealTimePriceAlertService  : JobIntentService() {
         }
     }
 
-    // create pending intent with entire back stack
-    private fun createShowPricePendingIntent(ticker : String, symbol : String) : PendingIntent? {
-        val showRealTimePriceIntent = Intent(this, TickerExploreActivity::class.java)
-        showRealTimePriceIntent.putExtra("name", ticker)
-        showRealTimePriceIntent.putExtra("symbol", symbol)
-        val pendingIntent : PendingIntent? = TaskStackBuilder.create(this).run {
-            // Add the intent, which inflates the back stack
-            addNextIntentWithParentStack(showRealTimePriceIntent)
-            // Get the PendingIntent containing the entire back stack
-            getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT)
-        }
-
-        return pendingIntent
+    // using deep link to creat pending intent for using Navigation Component.
+    fun createShowPricePendingIntent(name : String, symbol : String): PendingIntent {
+        val bundleArgs = Bundle()
+        bundleArgs.putString("symbol", symbol)
+        bundleArgs.putString("name", name)
+        return NavDeepLinkBuilder(this)
+            .setGraph(R.navigation.mobile_navigation)
+            .setDestination(R.id.navigation_ticker_explorer)
+            .setArguments(bundleArgs)
+            .createPendingIntent()
     }
+
+    //private fun createShowPricePendingIntent(ticker : String, symbol : String) : PendingIntent? {
+    //    val showRealTimePriceIntent = Intent(this, TickerExploreActivity::class.java)
+    //    showRealTimePriceIntent.putExtra("name", ticker)
+    //    showRealTimePriceIntent.putExtra("symbol", symbol)
+    //    val pendingIntent : PendingIntent? = TaskStackBuilder.create(this).run {
+    //        // Add the intent, which inflates the back stack
+    //        addNextIntentWithParentStack(showRealTimePriceIntent)
+    //        // Get the PendingIntent containing the entire back stack
+    //        getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT)
+    //    }
+//
+    //    return pendingIntent
+    //}
 }

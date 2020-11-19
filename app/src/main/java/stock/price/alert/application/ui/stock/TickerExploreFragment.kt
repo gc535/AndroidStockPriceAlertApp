@@ -43,6 +43,10 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
         scope.cancel()
     }
 
+    //todo:
+    // 1. change main modelview argument here, remove one in search fragment
+    // 2. fix args.get in onViewCreate, safeArgs also uses bundle to get arguments, try to use this as general routine.
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
