@@ -1,5 +1,6 @@
 package stock.price.alert.application.ui.stock
 
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -8,10 +9,12 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import androidx.activity.addCallback
 import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.android.volley.Request
 import com.android.volley.Response
@@ -44,9 +47,7 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
     }
 
     //todo:
-    // 1. change main modelview argument here, remove one in search fragment
-    // 2. fix args.get in onViewCreate, safeArgs also uses bundle to get arguments, try to use this as general routine.
-
+    // 1. backstack can be imporved if jump here from notification
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -58,18 +59,15 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
         rootView = inflater.inflate(R.layout.fragment_ticker_explore, container, false)
 
         watchListDBHandler = WatchListDBHandler(requireActivity())
-        val name : String = mainViewModel.mCur_ticker_name.value.toString()
-        val symbol : String = mainViewModel.mCur_ticker_symbol.value.toString()
-        Log.d("hist", "$name, $symbol")
-        Log.d("HasHist", mainViewModel.mHasHistory.toString())
-        Log.d("DataHist", tickerViewModel.mSymbol)
+
         return rootView
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        //findNavController().popBackStack()
+        Log.d("old viewmodel ticker", "${tickerViewModel.mSymbol}")
+        Log.d("new request ticker", args.tickerName.toString())
 
         if (args.tickerName != null && args.tickerSymbol != null) {
             name = args.tickerName as String
@@ -77,38 +75,52 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
 
             // init query APIs
             queryAPIs = StockDataQueryAPIs(requireContext(), symbol)
-
             // setup viewModel to observe price series data
             tickerViewModel.MaybeRefresh(symbol, name, queryAPIs)
             reObserveViewModel()
+            mainViewModel.ChangeTicker(name, symbol)
+            mainViewModel.mHasHistory = true
 
             // init buttons
-            initPriceButtons()
+            initButtonLogic()
         }
 
-
-        // test watch button
-        watch_Button.setOnClickListener(object : View.OnClickListener {
-            override fun onClick(view: View) {
-                var setAlertDialog = SetAlertDialogFragment()
-
-                // prepare args to be passed to DialogFragment
-                val bundleArgs = Bundle()
-                bundleArgs.putString("symbol", symbol)
-                bundleArgs.putString("name", name)
-                watchListDBHandler.GetUpperBound(symbol)?.let { ub_val ->
-                    bundleArgs.putFloat("upper_bound", ub_val)
-                }
-                watchListDBHandler.GetLowerBound(symbol)?.let { lb_val ->
-                    bundleArgs.putFloat("lower_bound", lb_val)
-                }
-
-                // display set price alert dialog
-                setAlertDialog.setArguments(bundleArgs)
-                setAlertDialog.show(childFragmentManager, "setAlertDialog")
-            }
-        })
+        // Back pressed callback, always go to last page
+        val backPressedCallback = requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
+            mainViewModel.ChangeTicker(null, null)
+            findNavController().popBackStack()
+        }
+        backPressedCallback.isEnabled = true
     }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d("state:", "onResume")
+        updateButtonState()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Log.d("state:", "onPause")
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Log.d("state:", "onStart")
+    }
+
+    override fun onStop() {
+        super.onStop()
+        Log.d("state:", "onStop")
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+
+        Log.d("state:", "onAttach")
+    }
+
+
 
 
     // Define MVVW observe behaviour
@@ -136,24 +148,32 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
     }
 
     /////////////////////// button related ///////////////////////
-    private fun initPriceButtons() {
-        if (tickerViewModel.mCurType != "Null") {
-            when (tickerViewModel.mCurType) {
-                "day" -> {button_1d.isPressed = true; button_1d.isSelected = true}
-                "week" -> {button_1w.isPressed = true; button_1w.isSelected = true}
-                "month" -> {button_1m.isPressed = true; button_1m.isSelected = true}
-                "3month" -> {button_3m.isPressed = true; button_3m.isSelected = true}
-                "year" -> {button_1y.isPressed = true; button_1y.isSelected = true}
-                "5year" -> {button_5y.isPressed = true; button_5y.isSelected = true}
-                else -> {}
-            }
-        }
-        else {
-            // by default, 1d button is pressed on init
-            button_1d.isPressed = true
-            button_1d.isSelected = true
-        }
+    private fun initButtonLogic() {
+        // watch button
+        watch_Button.setOnClickListener(object : View.OnClickListener {
+            override fun onClick(view: View) {
+                var setAlertDialog = SetAlertDialogFragment()
 
+                // prepare args to be passed to DialogFragment
+                val bundleArgs = Bundle()
+                bundleArgs.putString("symbol", symbol)
+                bundleArgs.putString("name", name)
+                watchListDBHandler.GetUpperBound(symbol)?.let { ub_val ->
+                    bundleArgs.putFloat("upper_bound", ub_val)
+                }
+                watchListDBHandler.GetLowerBound(symbol)?.let { lb_val ->
+                    bundleArgs.putFloat("lower_bound", lb_val)
+                }
+
+                // display set price alert dialog
+                setAlertDialog.setArguments(bundleArgs)
+                setAlertDialog.show(childFragmentManager, "setAlertDialog")
+            }
+        })
+
+        updateButtonState()
+
+        // init button touch logic
         button_1d.setOnTouchListener(this)
         button_1w.setOnTouchListener(this)
         button_1m.setOnTouchListener(this)
@@ -190,6 +210,25 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
             return false
         }
         return true
+    }
+
+    private fun updateButtonState(){
+        if (tickerViewModel.mCurType != "Null") {
+            when (tickerViewModel.mCurType) {
+                "day" -> {button_1d.isPressed = true; button_1d.isSelected = true}
+                "week" -> {button_1w.isPressed = true; button_1w.isSelected = true}
+                "month" -> {button_1m.isPressed = true; button_1m.isSelected = true}
+                "3month" -> {button_3m.isPressed = true; button_3m.isSelected = true}
+                "year" -> {button_1y.isPressed = true; button_1y.isSelected = true}
+                "5year" -> {button_5y.isPressed = true; button_5y.isSelected = true}
+                else -> {}
+            }
+        }
+        else {
+            // by default, 1d button is pressed on init
+            button_1d.isPressed = true
+            button_1d.isSelected = true
+        }
     }
 
     private fun clearButtonState(button: Button) {

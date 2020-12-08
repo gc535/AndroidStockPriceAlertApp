@@ -211,8 +211,8 @@ class RealTimePriceAlertService  : JobIntentService() {
     // using deep link to creat pending intent for using Navigation Component.
     fun createShowPricePendingIntent(name : String, symbol : String): PendingIntent {
         val bundleArgs = Bundle()
-        bundleArgs.putString("symbol", symbol)
-        bundleArgs.putString("name", name)
+        bundleArgs.putString("ticker_symbol", symbol)
+        bundleArgs.putString("ticker_name", name)
         return NavDeepLinkBuilder(this)
             .setGraph(R.navigation.mobile_navigation)
             .setDestination(R.id.navigation_ticker_explorer)

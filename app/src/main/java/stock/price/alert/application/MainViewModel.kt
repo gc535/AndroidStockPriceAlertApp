@@ -12,8 +12,16 @@ class MainViewModel : ViewModel() {
     val mCur_ticker_symbol: LiveData<String> = _cur_ticker_symbol
     var mHasHistory : Boolean = false
 
-    fun ChangeTicker(name : String, symbol : String) {
-        _cur_ticker_name.postValue(name)
-        _cur_ticker_symbol.postValue(symbol)
+    // set to null if any of two args is null
+    fun ChangeTicker(name : String?, symbol : String?) {
+        if (name != null && symbol != null) {
+            _cur_ticker_name.postValue(name)
+            _cur_ticker_symbol.postValue(symbol)
+        }
+        else {
+            _cur_ticker_name.postValue(null)
+            _cur_ticker_symbol.postValue(null)
+        }
+
     }
 }

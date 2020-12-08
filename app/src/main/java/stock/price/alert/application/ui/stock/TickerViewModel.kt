@@ -34,6 +34,7 @@ class TickerViewModel : ViewModel() {
     fun MaybeRefresh(new_symbol : String, new_name : String, apis : StockDataQueryAPIs) {
         if (new_symbol != mSymbol) {
             // clear old ticker data
+            Log.d("TICKERMV", "update requested, old: $mSymbol, new: $new_symbol")
             mSymbol = new_symbol
             mName = new_name
             respMap.clear()
@@ -42,7 +43,8 @@ class TickerViewModel : ViewModel() {
             price.postValue(" ")
 
             // update with new ticker data
-            UpdatePriceInBackGround("day", apis)
+            //UpdatePriceInBackGround("day", apis)
+            LoadPriceInBackGround("day", apis, true)
             mCurType = "day"
         }
     }

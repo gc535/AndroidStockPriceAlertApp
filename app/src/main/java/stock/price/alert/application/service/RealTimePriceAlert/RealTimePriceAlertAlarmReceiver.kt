@@ -28,7 +28,6 @@ class RealTimePriceAlertAlarmReceiver : BroadcastReceiver() {
             }
 
         }
-
     }
 
     private fun registerServiceAfterReboot(context: Context) {
