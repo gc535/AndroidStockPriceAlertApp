@@ -78,6 +78,7 @@ class SetAlertDialogFragment : DialogFragment() {
                 val ub_string = if (ub_val!=null) ub_val.toString() else ""
                 Log.d("POP", "user input lb: $lb_string, ub: $ub_string")
                 Log.d("POP", "probe db entry: $symbol: "+watchlistDBHandler.GetVal(symbol))
+                dismiss()
             }
         })
     }

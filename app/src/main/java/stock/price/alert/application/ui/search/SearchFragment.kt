@@ -70,8 +70,6 @@ class SearchFragment : Fragment() {
                 ticket_symbol.let{
                     val ticker_name = ticket_symbol.split(" : ")[0]
                     val ticker_symbol = ticket_symbol.split(" : ")[1]
-                    mainViewModel.ChangeTicker(ticker_name, ticker_symbol)
-                    mainViewModel.mHasHistory = true
 
                     // navigate with args
                     val goto_ticker_explorer_action = SearchFragmentDirections
@@ -84,7 +82,6 @@ class SearchFragment : Fragment() {
 
 
     private fun initSearchLogic() {
-
         val searchBar: SearchView = rootView.findViewById(R.id.searchBar)
         searchBar.setIconifiedByDefault(false)
         searchBar.onActionViewExpanded()
