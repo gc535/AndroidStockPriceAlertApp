@@ -5,11 +5,13 @@ import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.util.*
@@ -18,15 +20,7 @@ import kotlin.collections.HashMap
 
 @RequiresApi(Build.VERSION_CODES.O)
 class StockDataQueryAPIs(private val context : Context, private val symbol: String) {
-    var cQueryFuncs = HashMap<String, String>()
-    init {
-        cQueryFuncs["day"] = "TIME_SERIES_INTRADAY" // compact 5 min
-        cQueryFuncs["week"] = "TIME_SERIES_INTRADAY" // compact 60 mins
-        cQueryFuncs["month"] = "TIME_SERIES_DAILY_ADJUSTED" // compact daily adjusted 30
-        cQueryFuncs["3month"] = "TIME_SERIES_DAILY_ADJUSTED" // compact daily adjusted 90
-        cQueryFuncs["year"] = "TIME_SERIES_WEEKLY_ADJUSTED" //
-        cQueryFuncs["5year"] = "TIME_SERIES_WEEKLY_ADJUSTED" //
-    }
+    private val delim = "&"
 
     // Make network query of ticker price data in background threads
     fun DoBackgroundNetworkQuery(
@@ -59,6 +53,75 @@ class StockDataQueryAPIs(private val context : Context, private val symbol: Stri
         requestQueue.add(jsonObjectRequest)
     }
 
+    fun GetPriceDataInBackGround(
+        type : String,  // query type
+        viewModelScope : CoroutineScope,
+        updateCallback : (Vector<Pair<String, Float>>) -> Unit)
+    {
+        val requestQueue = Volley.newRequestQueue(context)
+        val jsonObjectRequest = JsonObjectRequest(
+            Request.Method.GET, genQueryStrYahoo(type), null,
+            Response.Listener { response ->
+                Toast.makeText(context, "success", Toast.LENGTH_SHORT).show()
+
+                // parse response in background and then update passed live data
+                viewModelScope.launch {
+                    val data = parsePriceDataYahoo()
+                    updateCallback(data)
+                }
+            },
+            Response.ErrorListener { error ->
+                // TODO: Handle error
+                Toast.makeText(context, error.toString(), Toast.LENGTH_SHORT).show()
+            }
+        )
+        // Access the RequestQueue through your singleton class.
+        requestQueue.add(jsonObjectRequest)
+    }
+
+    fun parsePriceDataYahoo() : Vector<Pair<String, Float>> {
+        return Vector<Pair<String, Float>>()
+    }
+
+    /* Yahoo Finance Data Query APIs*/
+    private val priceQuery_Yahoo_URL = "https://query1.finance.yahoo.com/v8/finance/chart/"
+    private val prefix_Yahoo_Query_Str = "?region=US&lang=en-US&includePrePost=true"
+    private val sufix_Yahoo_Query_Str = "corsDomain=finance.yahoo.com&.tsrc=finance"
+    private val cQueryTypeYahoo = hashMapOf(
+        "day" to "interval=5m&range=1d",
+        "week" to "interval=15m&range=5d",
+        "month" to "interval=1d&range=1mo",
+        "3month" to "interval=1d&range=3mo",
+        "year" to "interval=1d&range=1y",
+        "5year" to "interval=1wk&range=5y"
+    )
+
+    private fun genQueryStrYahoo(type : String) : String {
+        if (!cQueryTypeYahoo.containsKey(type)) {
+            throw Exception("Error: Unsupported query")
+        }
+        return priceQuery_Yahoo_URL + symbol + prefix_Yahoo_Query_Str +
+               delim + cQueryTypeYahoo[type]!! + delim + sufix_Yahoo_Query_Str
+    }
+
+
+
+
+    /* Alphavantage Data Query APIs*/
+
+    var cQueryFuncs = HashMap<String, String>()
+    init {
+        cQueryFuncs["day"] = "TIME_SERIES_INTRADAY" // compact 5 min
+        cQueryFuncs["week"] = "TIME_SERIES_INTRADAY" // compact 60 mins
+        cQueryFuncs["month"] = "TIME_SERIES_DAILY_ADJUSTED" // compact daily adjusted 30
+        cQueryFuncs["3month"] = "TIME_SERIES_DAILY_ADJUSTED" // compact daily adjusted 90
+        cQueryFuncs["year"] = "TIME_SERIES_WEEKLY_ADJUSTED" //
+        cQueryFuncs["5year"] = "TIME_SERIES_WEEKLY_ADJUSTED" //
+    }
+
+    private val priceQueryURL = "https://www.alphavantage.co/query?"
+    private val priceQueryKey = "apikey=5B4ZQG1WXCAB5L1N"
+
     fun checkResponse(type : String, resp : JSONObject) : Boolean {
         val validRespStr = "Meta Data"
         if (resp.opt(validRespStr) == null) {
@@ -82,7 +145,33 @@ class StockDataQueryAPIs(private val context : Context, private val symbol: Stri
     }
 
 
+    // sanity check of func is done by getFuncStr(func: String)
+    fun GenQueryStr(func : String, ticker : String) : String {
+        val optinal_interval = when(func) {
+            // TODO: 1mins for intraday only covers utill 2pm, full size is too big
+            "day" -> "interval=5min"
+            "week" -> "interval=60min"
+            else -> "" } + delim
+
+        val queryURL = priceQueryURL + getFuncStr(func) + delim +
+                "symbol=" + ticker + delim +
+                optinal_interval + priceQueryKey
+
+        return queryURL
+    }
+
+    // this interface also do the sanity check on query type
+    private fun getFuncStr(func: String): String {
+        val prefix = "function="
+        if (!cQueryFuncs.containsKey(func)) {
+            throw Exception("Error: Unsupported query")
+        }
+        return prefix + cQueryFuncs[func]
+    }
+
     /* APIs for ticker probing */
+
+    private val probQuestURL = "https://query2.finance.yahoo.com/v1/finance/"
 
     fun ProbTicker(search : String) : String {
         val query = "search?q=" + search
@@ -117,40 +206,4 @@ class StockDataQueryAPIs(private val context : Context, private val symbol: Stri
         return optStr
     }
 
-    fun GenAllQueryStr(ticket : String) :MutableList<String> {
-        var queryStrArray : MutableList<String> = ArrayList()
-        for (func in cQueryFuncs.values) {
-            queryStrArray.add(GenQueryStr(func, ticket))
-        }
-        return queryStrArray
-    }
-
-    // sanity check of func is done by getFuncStr(func: String)
-    fun GenQueryStr(func : String, ticker : String) : String {
-        val optinal_interval = when(func) {
-            // TODO: 1mins for intraday only covers utill 2pm, full size is too big
-            "day" -> "interval=5min"
-            "week" -> "interval=60min"
-            else -> "" } + delim
-
-        val queryURL = priceQueryURL + getFuncStr(func) + delim +
-                "symbol=" + ticker + delim +
-                optinal_interval + priceQueryKey
-
-        return queryURL
-    }
-
-    // this interface also do the sanity check on query type
-    private fun getFuncStr(func: String): String {
-        val prefix = "function="
-        if (!cQueryFuncs.containsKey(func)) {
-            throw Exception("Error: Unsupported query")
-        }
-        return prefix + cQueryFuncs[func]
-    }
-
-    private val probQuestURL = "https://query2.finance.yahoo.com/v1/finance/"
-    private val priceQueryURL = "https://www.alphavantage.co/query?"
-    private val priceQueryKey = "apikey=5B4ZQG1WXCAB5L1N"
-    private val delim = "&"
 }
