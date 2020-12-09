@@ -13,7 +13,6 @@ import java.time.LocalDate
 import java.util.*
 
 class TickerViewModel : ViewModel() {
-    private var respMap = HashMap<String, JSONObject>()
     private var priceData = HashMap<String, Vector<Pair<String, Float>>>()
 
     private var price = MutableLiveData<String> ()
@@ -26,30 +25,27 @@ class TickerViewModel : ViewModel() {
     val mPriceSeries : LiveData<Vector<Pair<String, Float>>> get() = priceSeries
 
 
-    private enum class PriceType {
-        DAY, WEEK, MONTH, MONTH3, YEAR, YEAR5
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
     fun MaybeRefresh(new_symbol : String, new_name : String, apis : StockDataQueryAPIs) {
         if (new_symbol != mSymbol) {
             // clear old ticker data
             Log.d("TICKERMV", "update requested, old: $mSymbol, new: $new_symbol")
             mSymbol = new_symbol
             mName = new_name
-            respMap.clear()
             priceData.clear()
             priceSeries = MutableLiveData()
             price.postValue(" ")
 
-            // update with new ticker data
-            //UpdatePriceInBackGround("day", apis)
+            // pre-load all data in background for better user experience
             LoadPriceInBackGround("day", apis, true)
+            LoadPriceInBackGround("week", apis, false)
+            LoadPriceInBackGround("month", apis, false)
+            LoadPriceInBackGround("3month", apis, false)
+            LoadPriceInBackGround("year", apis, false)
+            LoadPriceInBackGround("5year", apis, false)
             mCurType = "day"
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun LoadPriceInBackGround(
         type : String,
         apis : StockDataQueryAPIs,
@@ -57,32 +53,28 @@ class TickerViewModel : ViewModel() {
     {
         // return if dataset already exists
         if (priceData.containsKey(type)) {
+            if (update) {
+                SetPriceSeries(type)
+            }
             return
         }
-
-        // if response received, parse response in background
-        if (respMap.containsKey(getFuncType(type))) {
-            viewModelScope.launch {
-                parseResponse(type)
+        else {
+            apis.GetPriceDataInBackGround(type, viewModelScope) { data ->
+                Log.d("Yahoo CallBack:", data.toString())
+                priceData[type] = data
                 if (update) {
-                   SetPriceSeries(type)
+                    SetPriceSeries(type)
                 }
             }
         }
-        // else, make background network query. Also update livedata if "update" is set
-        else {
-            apis.DoBackgroundNetworkQuery(type, this, update)
-        }
     }
 
-
-    @RequiresApi(Build.VERSION_CODES.O)
     fun UpdatePriceInBackGround(type : String, apis : StockDataQueryAPIs) {
         if (type != mCurType) {
             mCurType = type
             // if dataset is ready, just update livedata
             if (priceData.containsKey(type)) {
-                priceSeries.postValue(priceData[type])
+                SetPriceSeries(type)
             }
             // else load price series in background and update livedata when ready
             else {
@@ -103,6 +95,9 @@ class TickerViewModel : ViewModel() {
         return mPriceSeries
     }
 
+
+/*  Old Alphavantage API implementation. No longer used.
+
     @RequiresApi(Build.VERSION_CODES.O)
     fun ProcessReponse(type : String, resp : JSONObject) {
         val respKey = getFuncType(type)
@@ -113,6 +108,7 @@ class TickerViewModel : ViewModel() {
 
         parseResponse(type)
     }
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun parseResponse(type : String) {
@@ -195,4 +191,6 @@ class TickerViewModel : ViewModel() {
             else -> throw Exception("Error: Invalid FuncType key.")
         } //
     }
+
+ */
 }

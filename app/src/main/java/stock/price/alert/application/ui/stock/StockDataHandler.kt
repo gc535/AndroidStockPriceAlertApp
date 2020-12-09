@@ -14,44 +14,13 @@ import com.android.volley.toolbox.Volley
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.HashMap
 
 
-@RequiresApi(Build.VERSION_CODES.O)
 class StockDataQueryAPIs(private val context : Context, private val symbol: String) {
     private val delim = "&"
-
-    // Make network query of ticker price data in background threads
-    fun DoBackgroundNetworkQuery(
-        type : String,  // query type
-        ticketViewModel : TickerViewModel, // callback for parsing response
-        update : Boolean)
-    {
-        val requestQueue = Volley.newRequestQueue(context)
-        val jsonObjectRequest = JsonObjectRequest(
-            Request.Method.GET, GenQueryStr(type, symbol), null,
-            Response.Listener { response ->
-                Toast.makeText(context, "success", Toast.LENGTH_SHORT).show()
-
-                // if response is valid, let viewModel parse response in background
-                if (checkResponse(type, response)) {
-                    ticketViewModel.viewModelScope.launch {
-                        ticketViewModel.ProcessReponse(type, response)
-                        if (update) {
-                            ticketViewModel.SetPriceSeries(type)
-                        }
-                    } // viewModel coroutine launch
-                } // if valid response
-            },
-            Response.ErrorListener { error ->
-                // TODO: Handle error
-                Toast.makeText(context, error.toString(), Toast.LENGTH_SHORT).show()
-            }
-        )
-        // Access the RequestQueue through your singleton class.
-        requestQueue.add(jsonObjectRequest)
-    }
 
     fun GetPriceDataInBackGround(
         type : String,  // query type
@@ -66,8 +35,9 @@ class StockDataQueryAPIs(private val context : Context, private val symbol: Stri
 
                 // parse response in background and then update passed live data
                 viewModelScope.launch {
-                    val data = parsePriceDataYahoo()
-                    updateCallback(data)
+                    parseResponseYahoo(type, response)?.let{ priceSeries ->
+                        updateCallback(priceSeries)
+                    }
                 }
             },
             Response.ErrorListener { error ->
@@ -79,8 +49,63 @@ class StockDataQueryAPIs(private val context : Context, private val symbol: Stri
         requestQueue.add(jsonObjectRequest)
     }
 
-    fun parsePriceDataYahoo() : Vector<Pair<String, Float>> {
-        return Vector<Pair<String, Float>>()
+    private fun parseResponseYahoo(type : String, jsonResp : JSONObject) : Vector<Pair<String, Float>>? {
+        /* format should be:
+         *    chart: {
+         *      result: [    / or "null" if not valid
+         *          {
+         *              "meta"
+         *              "timestamp"
+         *              "indicators" : {
+         *                  adjclose : [ { adjclose : [...] } ]
+         *               }
+         *          }
+         *      ]
+         */
+        val timeFormat = when(type) {
+            "day" -> SimpleDateFormat("hh:mm a")
+            "week" -> SimpleDateFormat("hh:mm a MM/dd")
+            // all other should be Mon/Day/Year
+            else -> SimpleDateFormat("MM/dd/yyyy")
+        }
+        val chartJsonObj = jsonResp.getJSONObject("chart")
+        val resultJsonArray = chartJsonObj.optJSONArray("result")
+        resultJsonArray?.let {
+            // result should be a size 1 and contains single JsonObj, this single object
+            // should contains { meta:{...} (obj), timestamep:[...] (array), indicators:{...} (obj)}
+            val timestampArray = resultJsonArray
+                .getJSONObject(0)
+                .getJSONArray("timestamp")
+
+            // price data array stored differently between: day, week than other 4
+            val adjclosePriceArray =
+                if (type == "day" || type == "week")
+                    resultJsonArray
+                        .getJSONObject(0)
+                        .getJSONObject("indicators")
+                        .getJSONArray("quote")
+                        .getJSONObject(0)
+                        .getJSONArray("close")
+                else
+                    resultJsonArray
+                        .getJSONObject(0)
+                        .getJSONObject("indicators")
+                        .getJSONArray("adjclose")
+                        .getJSONObject(0)
+                        .getJSONArray("adjclose")
+
+            val priceSeries = Vector<Pair<String, Float>>()
+            for (i in 0 until timestampArray.length()) {
+                val timeStr = timeFormat.format(Date(timestampArray.getLong(i) * 1000)) as String
+                val price = adjclosePriceArray.getDouble(i).toFloat()
+                priceSeries.add(Pair(timeStr, price))
+            }
+
+            return priceSeries
+        } ?: run {
+            Log.d("Yahoo Parsing", "Invalid response: $chartJsonObj")
+            return null
+        }
     }
 
     /* Yahoo Finance Data Query APIs*/
@@ -105,71 +130,7 @@ class StockDataQueryAPIs(private val context : Context, private val symbol: Stri
     }
 
 
-
-
-    /* Alphavantage Data Query APIs*/
-
-    var cQueryFuncs = HashMap<String, String>()
-    init {
-        cQueryFuncs["day"] = "TIME_SERIES_INTRADAY" // compact 5 min
-        cQueryFuncs["week"] = "TIME_SERIES_INTRADAY" // compact 60 mins
-        cQueryFuncs["month"] = "TIME_SERIES_DAILY_ADJUSTED" // compact daily adjusted 30
-        cQueryFuncs["3month"] = "TIME_SERIES_DAILY_ADJUSTED" // compact daily adjusted 90
-        cQueryFuncs["year"] = "TIME_SERIES_WEEKLY_ADJUSTED" //
-        cQueryFuncs["5year"] = "TIME_SERIES_WEEKLY_ADJUSTED" //
-    }
-
-    private val priceQueryURL = "https://www.alphavantage.co/query?"
-    private val priceQueryKey = "apikey=5B4ZQG1WXCAB5L1N"
-
-    fun checkResponse(type : String, resp : JSONObject) : Boolean {
-        val validRespStr = "Meta Data"
-        if (resp.opt(validRespStr) == null) {
-            if (resp.opt("Note") != null) {
-                val thankyouStr = "Thank you for using the app, your current status only allows" +
-                        "1 ticker query per minutes."
-                Toast.makeText(context, thankyouStr, Toast.LENGTH_SHORT).show()
-                return false
-            }
-            else if (resp.opt("Error Message") != null) {
-                val errorStr = "Invalid ticker information. Please check for correct ticker symbol"
-                Toast.makeText(context, errorStr, Toast.LENGTH_SHORT).show()
-                return false
-            }
-            else {
-                Log.d("RESP", resp.toString())
-                throw Exception("Error: Invalid query response: $type")
-            }
-        }
-        return true
-    }
-
-
-    // sanity check of func is done by getFuncStr(func: String)
-    fun GenQueryStr(func : String, ticker : String) : String {
-        val optinal_interval = when(func) {
-            // TODO: 1mins for intraday only covers utill 2pm, full size is too big
-            "day" -> "interval=5min"
-            "week" -> "interval=60min"
-            else -> "" } + delim
-
-        val queryURL = priceQueryURL + getFuncStr(func) + delim +
-                "symbol=" + ticker + delim +
-                optinal_interval + priceQueryKey
-
-        return queryURL
-    }
-
-    // this interface also do the sanity check on query type
-    private fun getFuncStr(func: String): String {
-        val prefix = "function="
-        if (!cQueryFuncs.containsKey(func)) {
-            throw Exception("Error: Unsupported query")
-        }
-        return prefix + cQueryFuncs[func]
-    }
-
-    /* APIs for ticker probing */
+/* APIs for ticker probing */
 
     private val probQuestURL = "https://query2.finance.yahoo.com/v1/finance/"
 
@@ -205,5 +166,103 @@ class StockDataQueryAPIs(private val context : Context, private val symbol: Stri
                 queryOptions + delim + otherOptions
         return optStr
     }
+
+/* Alphavantage API is no longer used
+
+
+    /* Alphavantage Data Query APIs*/
+
+    var cQueryFuncs = HashMap<String, String>()
+    init {
+        cQueryFuncs["day"] = "TIME_SERIES_INTRADAY" // compact 5 min
+        cQueryFuncs["week"] = "TIME_SERIES_INTRADAY" // compact 60 mins
+        cQueryFuncs["month"] = "TIME_SERIES_DAILY_ADJUSTED" // compact daily adjusted 30
+        cQueryFuncs["3month"] = "TIME_SERIES_DAILY_ADJUSTED" // compact daily adjusted 90
+        cQueryFuncs["year"] = "TIME_SERIES_WEEKLY_ADJUSTED" //
+        cQueryFuncs["5year"] = "TIME_SERIES_WEEKLY_ADJUSTED" //
+    }
+
+    private val priceQueryURL = "https://www.alphavantage.co/query?"
+    private fun getAlphavantageQueryKey() : String? {
+        // key is removed, since this API is no longer used
+        assert(false)
+    }
+
+    // Make network query of ticker price data in background threads
+    fun DoBackgroundNetworkQuery(
+        type : String,  // query type
+        ticketViewModel : TickerViewModel, // callback for parsing response
+        update : Boolean)
+    {
+        val requestQueue = Volley.newRequestQueue(context)
+        val jsonObjectRequest = JsonObjectRequest(
+            Request.Method.GET, GenQueryStr(type, symbol), null,
+            Response.Listener { response ->
+                Toast.makeText(context, "success", Toast.LENGTH_SHORT).show()
+
+                // if response is valid, let viewModel parse response in background
+                if (checkResponse(type, response)) {
+                    ticketViewModel.viewModelScope.launch {
+                        ticketViewModel.ProcessReponse(type, response)
+                        if (update) {
+                            ticketViewModel.SetPriceSeries(type)
+                        }
+                    } // viewModel coroutine launch
+                } // if valid response
+            },
+            Response.ErrorListener { error ->
+                Toast.makeText(context, error.toString(), Toast.LENGTH_SHORT).show()
+            }
+        )
+        // Access the RequestQueue through your singleton class.
+        requestQueue.add(jsonObjectRequest)
+    }
+
+    fun checkResponse(type : String, resp : JSONObject) : Boolean {
+        val validRespStr = "Meta Data"
+        if (resp.opt(validRespStr) == null) {
+            if (resp.opt("Note") != null) {
+                val thankyouStr = "Thank you for using the app, your current status only allows" +
+                        "1 ticker query per minutes."
+                Toast.makeText(context, thankyouStr, Toast.LENGTH_SHORT).show()
+                return false
+            }
+            else if (resp.opt("Error Message") != null) {
+                val errorStr = "Invalid ticker information. Please check for correct ticker symbol"
+                Toast.makeText(context, errorStr, Toast.LENGTH_SHORT).show()
+                return false
+            }
+            else {
+                Log.d("RESP", resp.toString())
+                throw Exception("Error: Invalid query response: $type")
+            }
+        }
+        return true
+    }
+
+
+    // sanity check of func is done by getFuncStr(func: String)
+    fun GenQueryStr(func : String, ticker : String) : String {
+        val optinal_interval = when(func) {
+            "day" -> "interval=5min"
+            "week" -> "interval=60min"
+            else -> "" } + delim
+
+        val queryURL = priceQueryURL + getFuncStr(func) + delim +
+                "symbol=" + ticker + delim +
+                optinal_interval + getAlphavantageQueryKey()
+
+        return queryURL
+    }
+
+    // this interface also do the sanity check on query type
+    private fun getFuncStr(func: String): String {
+        val prefix = "function="
+        if (!cQueryFuncs.containsKey(func)) {
+            throw Exception("Error: Unsupported query")
+        }
+        return prefix + cQueryFuncs[func]
+    }
+*/
 
 }

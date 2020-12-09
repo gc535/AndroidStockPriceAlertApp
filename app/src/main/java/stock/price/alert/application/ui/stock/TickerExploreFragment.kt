@@ -10,7 +10,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import androidx.activity.addCallback
-import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
@@ -63,7 +62,6 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
         return rootView
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Log.d("old viewmodel ticker", "${tickerViewModel.mSymbol}")
@@ -119,8 +117,6 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
 
         Log.d("state:", "onAttach")
     }
-
-
 
 
     // Define MVVW observe behaviour
@@ -182,7 +178,6 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
         button_5y.setOnTouchListener(this)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun onTouch(view: View, event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
             // clear all buttons' states
