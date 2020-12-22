@@ -7,7 +7,7 @@
 
 
     <LinearLayout
-        android:id="@+id/linearLayout"
+        android:id="@+id/ticker_info_Layout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_weight="1"
@@ -30,11 +30,12 @@
             android:textSize="18sp" />
 
         <LinearLayout
+            android:id="@+id/ticker_name_Layout"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="6"
-            android:weightSum="20"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:weightSum="20">
 
             <TextView
                 android:id="@+id/name_TextView"
@@ -47,11 +48,11 @@
 
             <Button
                 android:id="@+id/watch_Button"
+                style="?android:attr/borderlessButtonStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="4"
-                android:text="+ Watch"
-                style="?android:attr/borderlessButtonStyle" />
+                android:text="+ Watch" />
         </LinearLayout>
 
         <TextView
@@ -63,18 +64,6 @@
             android:textSize="22dp" />
 
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/responseTextView"
-        android:layout_width="270dp"
-        android:layout_height="247dp"
-        android:text="TextView"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.496"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.991" />
 
     <com.github.mikephil.charting.charts.LineChart
         android:id="@+id/pricePlot"
@@ -89,6 +78,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <LinearLayout
+        android:id="@+id/pirce_button_Layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
@@ -102,64 +92,98 @@
 
         <Button
             android:id="@+id/button_1d"
+            style="?android:attr/borderlessButtonStyle"
             android:layout_width="35dp"
             android:layout_height="25dp"
             android:layout_weight="1"
             android:background="@drawable/button_price_bg_color"
             android:text="1D"
-            android:textColor="@drawable/button_price_text_color"
-            style="?android:attr/borderlessButtonStyle"/>
+            android:textColor="@drawable/button_price_text_color" />
 
         <Button
             android:id="@+id/button_1w"
+            style="?android:attr/borderlessButtonStyle"
             android:layout_width="35dp"
             android:layout_height="25dp"
             android:layout_weight="1"
             android:background="@drawable/button_price_bg_color"
             android:text="1W"
-            android:textColor="@drawable/button_price_text_color"
-            style="?android:attr/borderlessButtonStyle"/>
+            android:textColor="@drawable/button_price_text_color" />
 
         <Button
             android:id="@+id/button_1m"
+            style="?android:attr/borderlessButtonStyle"
             android:layout_width="35dp"
             android:layout_height="25dp"
             android:layout_weight="1"
             android:background="@drawable/button_price_bg_color"
             android:text="1M"
-            android:textColor="@drawable/button_price_text_color"
-            style="?android:attr/borderlessButtonStyle"/>
+            android:textColor="@drawable/button_price_text_color" />
 
         <Button
             android:id="@+id/button_3m"
+            style="?android:attr/borderlessButtonStyle"
             android:layout_width="35dp"
             android:layout_height="25dp"
             android:layout_weight="1"
             android:background="@drawable/button_price_bg_color"
             android:text="3M"
-            android:textColor="@drawable/button_price_text_color"
-            style="?android:attr/borderlessButtonStyle"/>
+            android:textColor="@drawable/button_price_text_color" />
 
         <Button
             android:id="@+id/button_1y"
+            style="?android:attr/borderlessButtonStyle"
             android:layout_width="35dp"
             android:layout_height="25dp"
             android:layout_weight="1"
             android:background="@drawable/button_price_bg_color"
             android:text="1Y"
-            android:textColor="@drawable/button_price_text_color"
-            style="?android:attr/borderlessButtonStyle"/>
+            android:textColor="@drawable/button_price_text_color" />
 
         <Button
             android:id="@+id/button_5y"
+            style="?android:attr/borderlessButtonStyle"
             android:layout_width="35dp"
             android:layout_height="25dp"
             android:layout_weight="1"
             android:background="@drawable/button_price_bg_color"
             android:text="5Y"
-            android:textColor="@drawable/button_price_text_color"
-            style="?android:attr/borderlessButtonStyle"/>
+            android:textColor="@drawable/button_price_text_color" />
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/alert_TextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="alerts"
+        android:textSize="20dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.08"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/pirce_button_Layout"
+        app:layout_constraintVertical_bias="0.06" />
+
+    <ListView
+        android:id="@+id/saved_alert_ListView"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.08"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/alert_TextView"
+        app:layout_constraintVertical_bias="0.2" />
+
+    <TextView
+        android:id="@+id/empty_alertlist_textview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:text="No Alerts"
+        android:textSize="18sp"
+        android:visibility="visible"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

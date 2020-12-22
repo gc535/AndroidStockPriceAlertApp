@@ -80,7 +80,8 @@ class SearchFragment : Fragment() {
             }
     }
 
-
+    // to do we are re-creating ListView obj every time when text changes, this can be optimized to
+    // only update the original ListView's contents
     private fun initSearchLogic() {
         val searchBar: SearchView = rootView.findViewById(R.id.searchBar)
         searchBar.setIconifiedByDefault(false)

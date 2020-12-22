@@ -101,6 +101,4 @@ class QueryAPI {
         }
         return null
     }
-
-
 }

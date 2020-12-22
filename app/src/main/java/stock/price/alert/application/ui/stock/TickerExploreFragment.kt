@@ -8,7 +8,7 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
+import android.widget.*
 import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
@@ -26,6 +26,9 @@ import org.json.JSONObject
 import stock.price.alert.application.Data.WatchListDBHandler
 import stock.price.alert.application.MainViewModel
 import stock.price.alert.application.R
+import stock.price.alert.application.ui.home.HomeFragmentDirections
+import stock.price.alert.application.ui.home.WatchListEntry
+import stock.price.alert.application.ui.home.WatchListViewAdapter
 import java.util.*
 
 
@@ -35,9 +38,13 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
     private lateinit var symbol : String
     private lateinit var name : String
     private lateinit var rootView: View
+    private lateinit var alertlistView : ListView
+
     private lateinit var tickerViewModel : TickerViewModel
     private lateinit var mainViewModel : MainViewModel
     private val args : TickerExploreFragmentArgs by navArgs()
+
+
     // test
     private val scope = CoroutineScope(Job() + Dispatchers.Main)
     override fun onDestroy() {
@@ -81,6 +88,8 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
 
             // init buttons
             initButtonLogic()
+            // init price alert field
+            initAlertListView()
         }
 
         // Back pressed callback, always go to last page
@@ -91,35 +100,16 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
         backPressedCallback.isEnabled = true
     }
 
+    // reload button state when view re-attached
     override fun onResume() {
         super.onResume()
         Log.d("state:", "onResume")
         updateButtonState()
     }
 
-    override fun onPause() {
-        super.onPause()
-        Log.d("state:", "onPause")
-    }
-
-    override fun onStart() {
-        super.onStart()
-        Log.d("state:", "onStart")
-    }
-
-    override fun onStop() {
-        super.onStop()
-        Log.d("state:", "onStop")
-    }
-
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-
-        Log.d("state:", "onAttach")
-    }
 
 
-    // Define MVVW observe behaviour
+    // Define ViewModel observe behaviour
     private val priceObserver = Observer<String> { priceStr ->
         price_TextView.text = priceStr
     }
@@ -140,6 +130,37 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
 
         tickerViewModel.mPriceSeries.removeObserver(priceSeriesObserver)
         tickerViewModel.mPriceSeries.observe(viewLifecycleOwner, priceSeriesObserver)
+
+    }
+
+    private fun initAlertListView() {
+        alertlistView = rootView.findViewById(R.id.saved_alert_ListView)
+        alertlistView.adapter =
+            ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, ArrayList<String>())
+        alertlistView.emptyView = rootView.findViewById(R.id.empty_alertlist_textview)
+        alertlistView.dividerHeight = 2
+    }
+
+    // TODO: this will be called by ListView observable when updated
+    private fun reloadAlertListView() {
+        // create alert list view adapter
+        //alertlistView.adapter =
+        //    WatchListViewAdapter(requireContext(), tickerViewModel.mTickersWatchListLiveData.value!!)
+
+        alertlistView.onItemClickListener =
+            AdapterView.OnItemClickListener { parent, view, position, id ->
+                // invoke the diaglog fragment for setting alerts
+                }
+
+
+        // subscribe ui update to livedata
+        //tickerViewModel.mTickersWatchListLiveData.observe(
+        //    viewLifecycleOwner, Observer { tickersWatchList ->
+        //        (alertlistView.adapter as WatchListViewAdapter).notifyDataSetChanged()
+        //        // update plot
+        //        Log.d("OB", tickersWatchList.toString())
+        //    }
+        //)
 
     }
 

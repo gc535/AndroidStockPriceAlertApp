@@ -52,7 +52,7 @@ class HomeFragment : Fragment() {
 
     }
 
-
+    // ListView Update can be move to a dedicated function defines all observe behaviours
     private fun initWatchListView() {
         watchlistView = rootView.findViewById(R.id.wathlist_listview)
         watchlistView.adapter =
@@ -89,6 +89,8 @@ class HomeFragment : Fragment() {
         homeViewModel.StartBackgroundUpdate(requireContext())
     }
 
+    // since ViewModel is only detached not destroyed, we need to destroy it to prevent it keep
+    // probing price data in the background.
     override fun onDestroyView() {
         super.onDestroyView()
         homeViewModel.Clear()

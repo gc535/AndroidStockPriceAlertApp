@@ -33,11 +33,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-
     fun StartBackgroundUpdate(context: Context) {
         viewModelScope.launch {
             val requestQueue = Volley.newRequestQueue(context)
             while (true) {
+                // scan list, make query only if symbol exists in the queue. Check and remove from queue.
                 tickersWatchList.forEachIndexed { index, watchListEntry ->
                     val symbol: String = watchListEntry.getSymbol()
                     if (queuedPriceQuery.contains(symbol)) {
@@ -51,7 +51,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-
+    // check price, then re-add symbol to queue for next around.
     private fun checkPriceInBackground(volleyRequestQueue: RequestQueue, symbol : String, index: Int) {
         if (tickersWatchList[index].getSymbol() == symbol) {
             Log.d("HOMEVW", "Start checking $symbol")
@@ -93,7 +93,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-
+    // A hack to destroy ViewModel when view is detached.
     fun Clear() = onCleared()
     override fun onCleared() {
         viewModelScope.cancel()

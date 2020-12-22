@@ -49,6 +49,28 @@ class StockDataQueryAPIs(private val context : Context, private val symbol: Stri
         requestQueue.add(jsonObjectRequest)
     }
 
+
+    /* Yahoo Finance Data Query APIs*/
+    private val priceQuery_Yahoo_URL = "https://query1.finance.yahoo.com/v8/finance/chart/"
+    private val prefix_Yahoo_Query_Str = "?region=US&lang=en-US&includePrePost=true"
+    private val sufix_Yahoo_Query_Str = "corsDomain=finance.yahoo.com&.tsrc=finance"
+    private val cQueryTypeYahoo = hashMapOf(
+        "day" to "interval=5m&range=1d",
+        "week" to "interval=15m&range=5d",
+        "month" to "interval=1d&range=1mo",
+        "3month" to "interval=1d&range=3mo",
+        "year" to "interval=1d&range=1y",
+        "5year" to "interval=1wk&range=5y"
+    )
+
+    private fun genQueryStrYahoo(type : String) : String {
+        if (!cQueryTypeYahoo.containsKey(type)) {
+            throw Exception("Error: Unsupported query")
+        }
+        return priceQuery_Yahoo_URL + symbol + prefix_Yahoo_Query_Str +
+               delim + cQueryTypeYahoo[type]!! + delim + sufix_Yahoo_Query_Str
+    }
+
     private fun parseResponseYahoo(type : String, jsonResp : JSONObject) : Vector<Pair<String, Float>>? {
         /* format should be:
          *    chart: {
@@ -97,7 +119,10 @@ class StockDataQueryAPIs(private val context : Context, private val symbol: Stri
             val priceSeries = Vector<Pair<String, Float>>()
             for (i in 0 until timestampArray.length()) {
                 val timeStr = timeFormat.format(Date(timestampArray.getLong(i) * 1000)) as String
-                val price = adjclosePriceArray.getDouble(i).toFloat()
+                // price can be null in Yahoo Finance, due to no transactions occurred at that time point
+                val price =
+                    if (adjclosePriceArray.optDouble(i) != Double.NaN) adjclosePriceArray.getDouble(i).toFloat()
+                    else priceSeries.lastElement().second // use last price if not available
                 priceSeries.add(Pair(timeStr, price))
             }
 
@@ -108,30 +133,7 @@ class StockDataQueryAPIs(private val context : Context, private val symbol: Stri
         }
     }
 
-    /* Yahoo Finance Data Query APIs*/
-    private val priceQuery_Yahoo_URL = "https://query1.finance.yahoo.com/v8/finance/chart/"
-    private val prefix_Yahoo_Query_Str = "?region=US&lang=en-US&includePrePost=true"
-    private val sufix_Yahoo_Query_Str = "corsDomain=finance.yahoo.com&.tsrc=finance"
-    private val cQueryTypeYahoo = hashMapOf(
-        "day" to "interval=5m&range=1d",
-        "week" to "interval=15m&range=5d",
-        "month" to "interval=1d&range=1mo",
-        "3month" to "interval=1d&range=3mo",
-        "year" to "interval=1d&range=1y",
-        "5year" to "interval=1wk&range=5y"
-    )
-
-    private fun genQueryStrYahoo(type : String) : String {
-        if (!cQueryTypeYahoo.containsKey(type)) {
-            throw Exception("Error: Unsupported query")
-        }
-        return priceQuery_Yahoo_URL + symbol + prefix_Yahoo_Query_Str +
-               delim + cQueryTypeYahoo[type]!! + delim + sufix_Yahoo_Query_Str
-    }
-
-
-/* APIs for ticker probing */
-
+    /* APIs for ticker probing */
     private val probQuestURL = "https://query2.finance.yahoo.com/v1/finance/"
 
     fun ProbTicker(search : String) : String {
@@ -167,11 +169,8 @@ class StockDataQueryAPIs(private val context : Context, private val symbol: Stri
         return optStr
     }
 
-/* Alphavantage API is no longer used
-
-
+    /* Alphavantage API is no longer used
     /* Alphavantage Data Query APIs*/
-
     var cQueryFuncs = HashMap<String, String>()
     init {
         cQueryFuncs["day"] = "TIME_SERIES_INTRADAY" // compact 5 min
@@ -239,7 +238,6 @@ class StockDataQueryAPIs(private val context : Context, private val symbol: Stri
         }
         return true
     }
-
 
     // sanity check of func is done by getFuncStr(func: String)
     fun GenQueryStr(func : String, ticker : String) : String {
