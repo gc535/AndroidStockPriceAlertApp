@@ -57,9 +57,6 @@ class WatchListViewAdapter(private val mContext : Context, private val mDataArra
         return pos.toLong()
     }
 
-    override fun notifyDataSetChanged() {
-        super.notifyDataSetChanged()
-    }
 }
 
 class WatchListEntry(val mSymbol: String, val mTicker: String, val mLowerBound: Float?, val mUpperBound: Float?) {

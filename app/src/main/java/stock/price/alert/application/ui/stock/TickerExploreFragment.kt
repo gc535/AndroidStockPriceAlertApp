@@ -21,6 +21,8 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.github.mikephil.charting.charts.LineChart
 import kotlinx.android.synthetic.main.fragment_ticker_explore.*
+import kotlinx.android.synthetic.main.listview_layout_alertlist.view.*
+import kotlinx.android.synthetic.main.listview_layout_watchlist.view.*
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import stock.price.alert.application.Data.WatchListDBHandler
@@ -303,4 +305,32 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
 }
 
 
+// alert ListView related
+class AlertListViewAdapter(private val mContext: Context, private val mAlertPrices: ArrayList<Pair<String, Float>>)
+    : ArrayAdapter<Pair<String, Float>>(mContext, R.layout.listview_layout_alertlist, mAlertPrices) {
+    private val inflater = mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+
+    override fun getView(pos: Int, view: View?, parent: ViewGroup): View {
+        val rowView : View = inflater.inflate(R.layout.listview_layout_alertlist, parent, false)
+        mAlertPrices.forEach { price ->
+            rowView.alert_tag.text = price.first
+            rowView.alert_price.text = "%.2f".format(price.second)
+        }
+
+        return rowView
+    }
+
+    override fun getCount(): Int {
+        return mAlertPrices.size
+    }
+
+    override fun getItem(position: Int): Pair<String, Float>? {
+        return mAlertPrices[position]
+    }
+
+    override fun getItemId(pos: Int): Long {
+        return pos.toLong()
+    }
+
+}
 

@@ -9,21 +9,27 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import stock.price.alert.application.Data.WatchListDBHandler
 import java.time.LocalDate
 import java.util.*
 
 class TickerViewModel : ViewModel() {
-    private var priceData = HashMap<String, Vector<Pair<String, Float>>>()
+    private lateinit var watchlistDBHandler : WatchListDBHandler
 
+    private var upperbound = MutableLiveData<Float>().apply { postValue(Float.NaN) }
+    private var lowerbound = MutableLiveData<Float>().apply { postValue(Float.NaN) }
     private var price = MutableLiveData<String> ()
     private var priceSeries = MutableLiveData<Vector<Pair<String, Float>>>()
 
     var mCurType : String = "Null"
     var mSymbol : String = "Null"
     var mName : String = "Null"
+    private var priceData = HashMap<String, Vector<Pair<String, Float>>>()
+
     val mPrice : LiveData<String> get() = price
     val mPriceSeries : LiveData<Vector<Pair<String, Float>>> get() = priceSeries
-
+    val mUpperBound : LiveData<Float> get() = upperbound
+    val mLowerBound : LiveData<Float> get() = lowerbound
 
     fun MaybeRefresh(new_symbol : String, new_name : String, apis : StockDataQueryAPIs) {
         if (new_symbol != mSymbol) {
@@ -36,17 +42,43 @@ class TickerViewModel : ViewModel() {
             price.postValue(" ")
 
             // pre-load all data in background for better user experience
-            LoadPriceInBackGround("day", apis, true)
-            LoadPriceInBackGround("week", apis, false)
-            LoadPriceInBackGround("month", apis, false)
-            LoadPriceInBackGround("3month", apis, false)
-            LoadPriceInBackGround("year", apis, false)
-            LoadPriceInBackGround("5year", apis, false)
+            loadPriceInBackGround("day", apis, true)
+            loadPriceInBackGround("week", apis, false)
+            loadPriceInBackGround("month", apis, false)
+            loadPriceInBackGround("3month", apis, false)
+            loadPriceInBackGround("year", apis, false)
+            loadPriceInBackGround("5year", apis, false)
             mCurType = "day"
         }
     }
 
-    fun LoadPriceInBackGround(
+    fun UpdatePriceInBackGround(type : String, apis : StockDataQueryAPIs) {
+        if (type != mCurType) {
+            mCurType = type
+            // if dataset is ready, just update livedata
+            if (priceData.containsKey(type)) {
+                SetPriceSeries(type)
+            }
+            // else load price series in background and update livedata when ready
+            else {
+                loadPriceInBackGround(type, apis, true)
+            }
+        }
+    }
+
+    // update price and dataset for displaying
+    fun SetPriceSeries(type : String) {
+        Log.d("UPDATE", priceData[type].toString())
+        val priceStr : String = "$" + "%.2f".format(priceData[type]!!.lastElement().second)
+        price.postValue(priceStr)
+        priceSeries.postValue(priceData[type])
+    }
+
+    fun GetPriceSeries() : LiveData<Vector<Pair<String, Float>>> {
+        return mPriceSeries
+    }
+
+    private fun loadPriceInBackGround(
         type : String,
         apis : StockDataQueryAPIs,
         update : Boolean = false)
@@ -69,32 +101,10 @@ class TickerViewModel : ViewModel() {
         }
     }
 
-    fun UpdatePriceInBackGround(type : String, apis : StockDataQueryAPIs) {
-        if (type != mCurType) {
-            mCurType = type
-            // if dataset is ready, just update livedata
-            if (priceData.containsKey(type)) {
-                SetPriceSeries(type)
-            }
-            // else load price series in background and update livedata when ready
-            else {
-                LoadPriceInBackGround(type, apis, true)
-            }
-        }
+    private fun loadAlertPrices() {
+        // todo: load price using shared reference. Pay attention how to get realtime context for
+        //       constructing handler.
     }
-
-    // update price and dataset for displaying
-    fun SetPriceSeries(type : String) {
-        Log.d("UPDATE", priceData[type].toString())
-        val priceStr : String = "$" + "%.2f".format(priceData[type]!!.lastElement().second)
-        price.postValue(priceStr)
-        priceSeries.postValue(priceData[type])
-    }
-
-    fun GetPriceSeries() : LiveData<Vector<Pair<String, Float>>> {
-        return mPriceSeries
-    }
-
 
 /*  Old Alphavantage API implementation. No longer used.
 
