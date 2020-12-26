@@ -11,8 +11,6 @@ import android.util.Log
 import androidx.core.app.JobIntentService
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.app.TaskStackBuilder
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.navigation.NavDeepLinkBuilder
 import com.android.volley.Request
 import com.android.volley.Response
@@ -22,7 +20,6 @@ import kotlinx.coroutines.*
 import org.json.JSONObject
 import stock.price.alert.application.NotificationBuilder
 import stock.price.alert.application.R
-import stock.price.alert.application.ui.stock.TickerExploreActivity
 
 class RealTimePriceAlertService  : JobIntentService() {
     private val scope = CoroutineScope(Job() + Dispatchers.Main)

@@ -21,16 +21,6 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.search.SearchActivity" >
-            <intent-filter>
-                <action android:name="android.intent.action.SEARCH" />
-            </intent-filter>
-            <meta-data android:name="android.app.searchable"
-                android:resource="@xml/searchable"/>
-        </activity>
-
-
-        <activity android:name=".ui.stock.TickerExploreActivity" />
 
         <service android:name=".service.RealTimePriceAlert.RealTimePriceAlertService"
             android:permission="android.permission.BIND_JOB_SERVICE"/>
