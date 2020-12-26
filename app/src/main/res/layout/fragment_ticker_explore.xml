@@ -52,8 +52,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="4"
-                android:textAllCaps="false"
-                android:text="+ set alert" />
+                android:text="+ set alert"
+                android:textAllCaps="false" />
         </LinearLayout>
 
         <TextView
@@ -157,24 +157,28 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="alerts"
-        android:textSize="20dp"
+        android:textSize="24dp"
+        android:layout_marginStart="30dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.08"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/pirce_button_Layout"
         app:layout_constraintVertical_bias="0.06" />
 
     <ListView
         android:id="@+id/saved_alert_ListView"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginStart="30dp"
+        android:layout_marginEnd="20dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.08"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/alert_TextView"
-        app:layout_constraintVertical_bias="0.2" />
+        app:layout_constraintVertical_bias="0.0" />
 
     <TextView
         android:id="@+id/empty_alertlist_textview"
@@ -184,7 +188,10 @@
         android:layout_centerVertical="true"
         android:text="No Alerts"
         android:textSize="18sp"
-        android:visibility="visible"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/alert_TextView" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

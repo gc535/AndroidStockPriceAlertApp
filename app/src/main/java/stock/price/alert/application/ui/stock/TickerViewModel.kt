@@ -1,5 +1,6 @@
 package stock.price.alert.application.ui.stock
 
+import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -14,42 +15,63 @@ import java.time.LocalDate
 import java.util.*
 
 class TickerViewModel : ViewModel() {
-    private lateinit var watchlistDBHandler : WatchListDBHandler
-
-    private var upperbound = MutableLiveData<Float>().apply { postValue(Float.NaN) }
-    private var lowerbound = MutableLiveData<Float>().apply { postValue(Float.NaN) }
     private var price = MutableLiveData<String> ()
     private var priceSeries = MutableLiveData<Vector<Pair<String, Float>>>()
+    private var alertPrices = MutableLiveData<ArrayList<Pair<String, Float>>>()
 
     var mCurType : String = "Null"
     var mSymbol : String = "Null"
     var mName : String = "Null"
+    private var upperbound = Float.NaN
+    private var lowerbound = Float.NaN
     private var priceData = HashMap<String, Vector<Pair<String, Float>>>()
 
     val mPrice : LiveData<String> get() = price
     val mPriceSeries : LiveData<Vector<Pair<String, Float>>> get() = priceSeries
-    val mUpperBound : LiveData<Float> get() = upperbound
-    val mLowerBound : LiveData<Float> get() = lowerbound
+    val mAlertPrices : LiveData<ArrayList<Pair<String, Float>>> get() = alertPrices
 
-    fun MaybeRefresh(new_symbol : String, new_name : String, apis : StockDataQueryAPIs) {
+
+    fun MaybeRefresh(new_symbol : String, new_name : String, currentContext : Context) : Boolean {
         if (new_symbol != mSymbol) {
             // clear old ticker data
-            Log.d("TICKERMV", "update requested, old: $mSymbol, new: $new_symbol")
+            Log.d("TICKERVW", "update requested, old: $mSymbol, new: $new_symbol")
             mSymbol = new_symbol
             mName = new_name
             priceData.clear()
             priceSeries = MutableLiveData()
+            alertPrices = MutableLiveData(ArrayList<Pair<String, Float>>())
             price.postValue(" ")
 
+            // load alert prices
+            val watchListDBHandler = WatchListDBHandler(currentContext)
+            LoadAlertPrices(watchListDBHandler)
+
             // pre-load all data in background for better user experience
-            loadPriceInBackGround("day", apis, true)
-            loadPriceInBackGround("week", apis, false)
-            loadPriceInBackGround("month", apis, false)
-            loadPriceInBackGround("3month", apis, false)
-            loadPriceInBackGround("year", apis, false)
-            loadPriceInBackGround("5year", apis, false)
+            val queryAPI = StockDataQueryAPIs(currentContext, new_symbol)
+            loadPriceInBackGround("day", queryAPI, true)
+            loadPriceInBackGround("week", queryAPI, false)
+            loadPriceInBackGround("month", queryAPI, false)
+            loadPriceInBackGround("3month", queryAPI, false)
+            loadPriceInBackGround("year", queryAPI, false)
+            loadPriceInBackGround("5year", queryAPI, false)
             mCurType = "day"
+            return true
         }
+        return false
+    }
+
+    // load users alert price of current ticker, if there is any
+    fun LoadAlertPrices(watchlistDBHandler : WatchListDBHandler) {
+        var alertPriceList = ArrayList<Pair<String, Float>>()
+         watchlistDBHandler.GetUpperBound(mSymbol)?.let { ub_price ->
+             upperbound = ub_price
+             alertPriceList.add(Pair("upper bound", ub_price))
+         }
+        watchlistDBHandler.GetLowerBound(mSymbol)?.let { lb_price ->
+            lowerbound = lb_price
+            alertPriceList.add(Pair("lower bound", lb_price))
+        }
+        alertPrices.postValue(alertPriceList)
     }
 
     fun UpdatePriceInBackGround(type : String, apis : StockDataQueryAPIs) {
@@ -101,10 +123,7 @@ class TickerViewModel : ViewModel() {
         }
     }
 
-    private fun loadAlertPrices() {
-        // todo: load price using shared reference. Pay attention how to get realtime context for
-        //       constructing handler.
-    }
+
 
 /*  Old Alphavantage API implementation. No longer used.
 

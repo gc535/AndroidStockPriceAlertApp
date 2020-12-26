@@ -24,6 +24,7 @@ import kotlinx.android.synthetic.main.fragment_ticker_explore.*
 import kotlinx.android.synthetic.main.listview_layout_alertlist.view.*
 import kotlinx.android.synthetic.main.listview_layout_watchlist.view.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.ticker
 import org.json.JSONObject
 import stock.price.alert.application.Data.WatchListDBHandler
 import stock.price.alert.application.MainViewModel
@@ -35,8 +36,8 @@ import java.util.*
 
 
 class TickerExploreFragment : Fragment(), View.OnTouchListener {
-    private lateinit var watchListDBHandler : WatchListDBHandler
-    private lateinit var queryAPIs: StockDataQueryAPIs
+
+
     private lateinit var symbol : String
     private lateinit var name : String
     private lateinit var rootView: View
@@ -45,7 +46,6 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
     private lateinit var tickerViewModel : TickerViewModel
     private lateinit var mainViewModel : MainViewModel
     private val args : TickerExploreFragmentArgs by navArgs()
-
 
     // test
     private val scope = CoroutineScope(Job() + Dispatchers.Main)
@@ -66,8 +66,6 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
         mainViewModel = ViewModelProviders.of(requireActivity()).get(MainViewModel::class.java)
         rootView = inflater.inflate(R.layout.fragment_ticker_explore, container, false)
 
-        watchListDBHandler = WatchListDBHandler(requireActivity())
-
         return rootView
     }
 
@@ -80,13 +78,11 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
             name = args.tickerName as String
             symbol = args.tickerSymbol as String
 
-            // init query APIs
-            queryAPIs = StockDataQueryAPIs(requireContext(), symbol)
-            // setup viewModel to observe price series data
-            tickerViewModel.MaybeRefresh(symbol, name, queryAPIs)
-            reObserveViewModel()
+            // setup viewModel to observe live data in ViewModel
             mainViewModel.ChangeTicker(name, symbol)
             mainViewModel.mHasHistory = true
+            tickerViewModel.MaybeRefresh(symbol, name, requireContext())
+            reObserveViewModel()
 
             // init buttons
             initButtonLogic()
@@ -110,7 +106,6 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
     }
 
 
-
     // Define ViewModel observe behaviour
     private val priceObserver = Observer<String> { priceStr ->
         price_TextView.text = priceStr
@@ -121,6 +116,9 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
         val priceChart: LineChart = rootView.findViewById(R.id.pricePlot)
         var pricePloter = PricePloter(priceChart)
         pricePloter.PlotData(priceSeries)
+    }
+    private val alertPricesObserver = Observer<ArrayList<Pair<String, Float>>> { alertPrices ->
+        reloadAlertListView(alertPrices)
     }
     // define subscription to view model data {  }
     private fun reObserveViewModel() {
@@ -133,37 +131,42 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
         tickerViewModel.mPriceSeries.removeObserver(priceSeriesObserver)
         tickerViewModel.mPriceSeries.observe(viewLifecycleOwner, priceSeriesObserver)
 
+        tickerViewModel.mAlertPrices.removeObserver(alertPricesObserver)
+        tickerViewModel.mAlertPrices.observe(viewLifecycleOwner, alertPricesObserver)
     }
 
     private fun initAlertListView() {
         alertlistView = rootView.findViewById(R.id.saved_alert_ListView)
         alertlistView.adapter =
-            ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, ArrayList<String>())
+            AlertListViewAdapter(requireContext(), tickerViewModel.mAlertPrices.value!!)
         alertlistView.emptyView = rootView.findViewById(R.id.empty_alertlist_textview)
-        alertlistView.dividerHeight = 2
-    }
-
-    // TODO: this will be called by ListView observable when updated
-    private fun reloadAlertListView() {
-        // create alert list view adapter
-        //alertlistView.adapter =
-        //    WatchListViewAdapter(requireContext(), tickerViewModel.mTickersWatchListLiveData.value!!)
+        alertlistView.dividerHeight = 0
 
         alertlistView.onItemClickListener =
             AdapterView.OnItemClickListener { parent, view, position, id ->
-                // invoke the diaglog fragment for setting alerts
-                }
+                invokeSetAlertDialog()
+            }
+    }
 
+    // TODO: this will be called by ListView observable when updated
+    private fun reloadAlertListView(alertPrices: ArrayList<Pair<String, Float>>) {
+        // create alert list view adapter
+        alertlistView.adapter =
+            AlertListViewAdapter(requireContext(), alertPrices)
+        (alertlistView.adapter as AlertListViewAdapter).notifyDataSetChanged()
+    }
 
-        // subscribe ui update to livedata
-        //tickerViewModel.mTickersWatchListLiveData.observe(
-        //    viewLifecycleOwner, Observer { tickersWatchList ->
-        //        (alertlistView.adapter as WatchListViewAdapter).notifyDataSetChanged()
-        //        // update plot
-        //        Log.d("OB", tickersWatchList.toString())
-        //    }
-        //)
+    private fun invokeSetAlertDialog() {
+        var setAlertDialog = SetAlertDialogFragment()
 
+        // prepare args to be passed to DialogFragment
+        val bundleArgs = Bundle()
+        bundleArgs.putString("symbol", symbol)
+        bundleArgs.putString("name", name)
+
+        // display set price alert dialog
+        setAlertDialog.setArguments(bundleArgs)
+        setAlertDialog.show(childFragmentManager, "setAlertDialog")
     }
 
     /////////////////////// button related ///////////////////////
@@ -171,22 +174,7 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
         // watch button
         watch_Button.setOnClickListener(object : View.OnClickListener {
             override fun onClick(view: View) {
-                var setAlertDialog = SetAlertDialogFragment()
-
-                // prepare args to be passed to DialogFragment
-                val bundleArgs = Bundle()
-                bundleArgs.putString("symbol", symbol)
-                bundleArgs.putString("name", name)
-                watchListDBHandler.GetUpperBound(symbol)?.let { ub_val ->
-                    bundleArgs.putFloat("upper_bound", ub_val)
-                }
-                watchListDBHandler.GetLowerBound(symbol)?.let { lb_val ->
-                    bundleArgs.putFloat("lower_bound", lb_val)
-                }
-
-                // display set price alert dialog
-                setAlertDialog.setArguments(bundleArgs)
-                setAlertDialog.show(childFragmentManager, "setAlertDialog")
+                invokeSetAlertDialog()
             }
         })
 
@@ -212,6 +200,7 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
             clearButtonState(button_5y)
 
             // set state of clicked button
+            val queryAPIs = StockDataQueryAPIs(requireContext(), symbol)
             when(view.id) {
                 R.id.button_1d -> {setButtonState(button_1d); tickerViewModel.UpdatePriceInBackGround("day", queryAPIs)}
                 R.id.button_1w -> {setButtonState(button_1w); tickerViewModel.UpdatePriceInBackGround("week", queryAPIs)}
@@ -312,10 +301,9 @@ class AlertListViewAdapter(private val mContext: Context, private val mAlertPric
 
     override fun getView(pos: Int, view: View?, parent: ViewGroup): View {
         val rowView : View = inflater.inflate(R.layout.listview_layout_alertlist, parent, false)
-        mAlertPrices.forEach { price ->
-            rowView.alert_tag.text = price.first
-            rowView.alert_price.text = "%.2f".format(price.second)
-        }
+        rowView.alert_tag.text = mAlertPrices[pos].first
+        rowView.alert_price.text = "%.2f".format(mAlertPrices[pos].second)
+
 
         return rowView
     }

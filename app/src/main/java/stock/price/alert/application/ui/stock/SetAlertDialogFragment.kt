@@ -29,22 +29,21 @@ class SetAlertDialogFragment : DialogFragment() {
     ): View? {
         dialog!!.window!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
-        // get ticker info from bundle
-        symbol = arguments?.getString("symbol")!!
-        name = arguments?.getString("name")!!
-        ubPrice = if (arguments?.getFloat("upper_bound", UNINIT_FLOAT) != UNINIT_FLOAT)
-            arguments?.getFloat("upper_bound") else null
-        lbPrice = if (arguments?.getFloat("lower_bound", UNINIT_FLOAT) != UNINIT_FLOAT)
-            arguments?.getFloat("lower_bound") else null
-
-        Log.d("POP", "get lb: ${lbPrice.toString()}, ub: ${ubPrice.toString()}")
-
-        watchlistDBHandler = WatchListDBHandler(requireContext())
         return inflater.inflate(R.layout.fragment_set_alert, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // get ticker info from bundle
+        watchlistDBHandler = WatchListDBHandler(requireContext())
+        symbol = arguments?.getString("symbol")!!
+        name = arguments?.getString("name")!!
+        ubPrice = watchlistDBHandler.GetUpperBound(symbol)
+        lbPrice = watchlistDBHandler.GetLowerBound(symbol)
+
+        Log.d("POP", "get lb: ${lbPrice.toString()}, ub: ${ubPrice.toString()}")
+
 
         ubPrice?.let{
             editUpperBoundText.setText(ubPrice.toString())
@@ -57,7 +56,7 @@ class SetAlertDialogFragment : DialogFragment() {
         initSubmitButton()
     }
 
-
+    // todo: should accept callback for updating the view of caller fragment
     private fun initSubmitButton() {
         setButton.setOnClickListener (object : View.OnClickListener {
             override fun onClick(view: View) {

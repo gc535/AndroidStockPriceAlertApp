@@ -14,6 +14,7 @@ import com.android.volley.toolbox.Volley
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.lang.Double.NaN
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.HashMap
@@ -120,8 +121,9 @@ class StockDataQueryAPIs(private val context : Context, private val symbol: Stri
             for (i in 0 until timestampArray.length()) {
                 val timeStr = timeFormat.format(Date(timestampArray.getLong(i) * 1000)) as String
                 // price can be null in Yahoo Finance, due to no transactions occurred at that time point
+                Log.d("test", adjclosePriceArray.optDouble(i).toString())
                 val price =
-                    if (adjclosePriceArray.optDouble(i) != Double.NaN) adjclosePriceArray.getDouble(i).toFloat()
+                    if (!adjclosePriceArray.optDouble(i).isNaN()) adjclosePriceArray.getDouble(i).toFloat()
                     else priceSeries.lastElement().second // use last price if not available
                 priceSeries.add(Pair(timeStr, price))
             }
