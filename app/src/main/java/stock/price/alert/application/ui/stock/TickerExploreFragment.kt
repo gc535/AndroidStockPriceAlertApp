@@ -156,8 +156,16 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
         (alertlistView.adapter as AlertListViewAdapter).notifyDataSetChanged()
     }
 
+
     private fun invokeSetAlertDialog() {
         var setAlertDialog = SetAlertDialogFragment()
+
+        // create on dismiss listener for SetAlertDialogFragment
+        val listener = object : SetAlertDismissListener {
+            override fun handleDismiss() {
+                tickerViewModel.LoadAlertPrices(WatchListDBHandler(requireContext()))
+            }
+        }
 
         // prepare args to be passed to DialogFragment
         val bundleArgs = Bundle()
@@ -166,6 +174,7 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
 
         // display set price alert dialog
         setAlertDialog.setArguments(bundleArgs)
+        setAlertDialog.SetDismissListener(listener)
         setAlertDialog.show(childFragmentManager, "setAlertDialog")
     }
 
@@ -292,7 +301,6 @@ class TickerExploreFragment : Fragment(), View.OnTouchListener {
     }
 
 }
-
 
 // alert ListView related
 class AlertListViewAdapter(private val mContext: Context, private val mAlertPrices: ArrayList<Pair<String, Float>>)

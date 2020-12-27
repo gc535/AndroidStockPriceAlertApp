@@ -1,5 +1,6 @@
 package stock.price.alert.application.ui.stock
 
+import android.content.DialogInterface
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
@@ -21,7 +22,7 @@ class SetAlertDialogFragment : DialogFragment() {
     private lateinit var name : String
     private var ubPrice : Float? = null
     private var lbPrice : Float? = null
-    private val UNINIT_FLOAT = -1.0f
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -56,7 +57,6 @@ class SetAlertDialogFragment : DialogFragment() {
         initSubmitButton()
     }
 
-    // todo: should accept callback for updating the view of caller fragment
     private fun initSubmitButton() {
         setButton.setOnClickListener (object : View.OnClickListener {
             override fun onClick(view: View) {
@@ -82,6 +82,18 @@ class SetAlertDialogFragment : DialogFragment() {
         })
     }
 
+    // Define custom on dismiss listener for the dialog fragment
+    fun SetDismissListener(dismissListener: SetAlertDismissListener) {
+        this.dismissListener = dismissListener
+    }
+
+    private var dismissListener : SetAlertDismissListener? = null
+    override fun onDismiss(dialog: DialogInterface) {
+        super.onDismiss(dialog)
+       this.dismissListener?.let{ dismissListener ->
+           dismissListener.handleDismiss()
+        }
+    }
 
     private fun initEditTextLogic() {
         editUpperBoundText.addTextChangedListener(object : TextWatcher {
@@ -95,8 +107,8 @@ class SetAlertDialogFragment : DialogFragment() {
             }
         })
     }
+}
 
-
-
-
+interface SetAlertDismissListener {
+    fun handleDismiss()
 }
